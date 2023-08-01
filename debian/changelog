@@ -1,3 +1,9 @@
+efivar (37-6deepin1) unstable; urgency=medium
+
+  * Add loong64 support
+
+ -- Han Gao <gaohan@deepin.org>  Tue, 31 Jan 2023 19:39:00 +0800
+
 efivar (37-6) unstable; urgency=medium
 
   [ dann frazier ]
