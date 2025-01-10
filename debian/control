@@ -11,66 +11,58 @@ Vcs-Browser: https://salsa.debian.org/efi-team/efivar
 
 Package: libefivar-dev
 Section: libdevel
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Architecture: any
 Multi-Arch: same
-Depends: libefivar1t64 (= ${binary:Version}), ${misc:Depends}
+Depends: libefivar1 (= ${binary:Version}), ${misc:Depends}
 Description: Development headers for libefivar
  development headers required to use libefivar
 
 Package: libefiboot-dev
 Section: libdevel
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Architecture: any
 Multi-Arch: same
-Depends: libefiboot1t64 (= ${binary:Version}), ${misc:Depends}
+Depends: libefiboot1 (= ${binary:Version}), ${misc:Depends}
 Description: Development headers for libefiboot
  development headers required to use libefiboot
 
 Package: libefisec-dev
 Section: libdevel
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Architecture: any
 Multi-Arch: same
-Depends: libefisec1t64 (= ${binary:Version}), ${misc:Depends}
+Depends: libefisec1 (= ${binary:Version}), ${misc:Depends}
 Description: Development headers for libefisec
  development headers required to use libefisec
 
 Package: efivar
 Section: admin
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Architecture: any
 Multi-Arch: foreign
-Depends: ${shlibs:Depends}, ${misc:Depends}, libefivar1t64 (= ${binary:Version}), libefiboot1t64 (= ${binary:Version})
+Depends: ${shlibs:Depends}, ${misc:Depends}, libefivar1 (= ${binary:Version}), libefiboot1 (= ${binary:Version})
 Description: Tools to manage UEFI variables
  efivar provides a simple command line interface to the UEFI variable facility.
 
-Package: libefiboot1t64
-Provides: ${t64:Provides}
-Replaces: libefiboot1
-Breaks: libefiboot1 (<< ${source:Version})
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Package: libefiboot1
+Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Library to manage UEFI variables
  Library to allow for the manipulation of UEFI variables related to booting.
 
-Package: libefivar1t64
-Provides: ${t64:Provides}
-Replaces: libefivar1
-Breaks: libefivar1 (<< ${source:Version})
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Package: libefivar1
+Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Library to manage UEFI variables
  Library to allow for the simple manipulation of UEFI variables.
 
-Package: libefisec1t64
-Provides: ${t64:Provides}
-Replaces: libefisec1
-Architecture: amd64 i386 ia64 armhf arm64 armel riscv64 x32 mips64el loong64
+Package: libefisec1
+Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Breaks: libefisec1 (<< ${source:Version}), efibootmgr (<< 0.12-2)
+Breaks: efibootmgr (<< 0.12-2)
 Description: Library to manage UEFI variables
  Library to allow for the simple manipulation of UEFI variables related to
  security.
