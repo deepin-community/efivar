@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * fix_coverity.h
  * Copyright 2017 Peter Jones <pjones@redhat.com>
  *
- * Distributed under terms of the GPLv3 license.
  */
 
 #ifndef FIX_COVERITY_H
@@ -22,8 +22,8 @@
  *
  * In glibc's headers, bits/floatn.h has:
  *
- * #if (defined __x86_64__                                              \
- *   ? __GNUC_PREREQ (4, 3)                                             \
+ * #if (defined __x86_64__						\
+ *   ? __GNUC_PREREQ (4, 3)						\
  *   : (defined __GNU__ ? __GNUC_PREREQ (4, 5) : __GNUC_PREREQ (4, 4)))
  * # define __HAVE_FLOAT128 1
  * #else
@@ -35,24 +35,21 @@
  * #if __HAVE_FLOAT128 && __GLIBC_USE (IEC_60559_TYPES_EXT)
  * slash* Likewise for the '_Float128' format  *slash
  * extern _Float128 strtof128 (const char *__restrict __nptr,
- *                       char **__restrict __endptr)
- *      __THROW __nonnull ((1));
+ *			       char **__restrict __endptr)
+ *	__THROW __nonnull ((1));
  * #endif
  *
  * Which then causes cov-emit to lose its shit:
  *
- * "/usr/include/stdlib.h", line 133: error #20: identifier "_Float128" is
- *           undefined
+ * "/usr/include/stdlib.h", line 133: error #20: identifier "_Float128" is undefined
  *   extern _Float128 strtof128 (const char *__restrict __nptr,
- *          ^
- * "/usr/include/stdlib.h", line 190: error #20: identifier "_Float128" is
- *           undefined
- *                         _Float128 __f)
- *                         ^
- * "/usr/include/stdlib.h", line 236: error #20: identifier "_Float128" is
- *           undefined
+ *	    ^
+ * "/usr/include/stdlib.h", line 190: error #20: identifier "_Float128" is undefined
+ *			 _Float128 __f)
+ *			 ^
+ * "/usr/include/stdlib.h", line 236: error #20: identifier "_Float128" is undefined
  *   extern _Float128 strtof128_l (const char *__restrict __nptr,
- *          ^
+ *	    ^
  *
  * And then you'll notice something like this later on:
  * [WARNING] Emitted 0 C/C++ compilation units (0%) successfully
@@ -72,10 +69,29 @@
  */
 #ifdef __x86_64__
 #if __COVERITY_GCC_VERSION_AT_LEAST(7, 0)
+#include <sys/cdefs.h>
+#ifdef __attribute_malloc__
+#undef __attribute_malloc__
+#define __attribute_malloc__
+#endif
+#ifdef __attr_dealloc
+#undef __attr_dealloc
+#define __attr_dealloc(a, b)
+#endif
 #if 0
 typedef float _Float128 __attribute__((__mode__(__TF__)));
 typedef __complex__ float __cfloat128 __attribute__ ((__mode__ (__TC__)));
 typedef _Complex float __cfloat128 __attribute__ ((__mode__ (__TC__)));
+#elif __GNUC__ >= 11
+#define _Mdouble_complex_
+#define _COMPLEX_H
+#ifdef __MATHCALL
+#undef __MATCHALL
+#define __MATHCALL(x)
+#include <bits/cmathcalls.h>
+#undef _COMPLEX_H
+#include <complex.h>
+#endif
 #else
 #include <unistd.h>
 #define __cplusplus 201103L
@@ -91,4 +107,5 @@ typedef _Complex float __cfloat128 __attribute__ ((__mode__ (__TC__)));
 #endif
 
 #endif /* !FIX_COVERITY_H */
-// vim:fenc=utf-8:tw=75
+
+// vim:fenc=utf-8:tw=75:noet

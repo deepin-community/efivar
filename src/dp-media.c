@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -28,7 +14,7 @@
 #include "efivar.h"
 
 ssize_t
-_format_media_dn(char *buf, size_t size, const_efidp dp)
+_format_media_dn(unsigned char *buf, size_t size, const_efidp dp)
 {
 	ssize_t off = 0;
 	switch (dp->subtype) {
@@ -46,8 +32,7 @@ _format_media_dn(char *buf, size_t size, const_efidp dp)
 			break;
 		case EFIDP_HD_SIGNATURE_GUID:
 			format(buf, size, off, "HD", "GPT,");
-			format_guid(buf, size, off, "HD",
-				    (efi_guid_t *)dp->hd.signature);
+			format_guid(buf, size, off, "HD", dp->hd.signature);
 			format(buf, size, off, "HD",
 			       ",0x%"PRIx64",0x%"PRIx64")",
 			       dp->hd.start, dp->hd.size);
@@ -208,3 +193,5 @@ efidp_make_hd(uint8_t *buf, ssize_t size, uint32_t num, uint64_t part_start,
 
 	return sz;
 }
+
+// vim:fenc=utf-8:tw=75:noet

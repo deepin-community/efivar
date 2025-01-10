@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -38,13 +24,17 @@ extern char *optarg;
 extern int optind, opterr, optopt;
 
 #include "efivar.h"
+#include "efivar/efivar-guids.h"
 
-#define ACTION_LIST		0x1
-#define ACTION_PRINT		0x2
-#define ACTION_APPEND		0x4
-#define ACTION_LIST_GUIDS	0x8
+#define ACTION_USAGE		0x00
+#define ACTION_LIST		0x01
+#define ACTION_PRINT		0x02
+#define ACTION_APPEND		0x04
+#define ACTION_LIST_GUIDS	0x08
 #define ACTION_WRITE		0x10
 #define ACTION_PRINT_DEC	0x20
+#define ACTION_IMPORT		0x40
+#define ACTION_EXPORT		0x80
 
 #define EDIT_APPEND	0
 #define EDIT_WRITE	1
@@ -63,32 +53,31 @@ static const char *attribute_names[] = {
 	""
 };
 
-static int verbose_errors = 0;
-
-static void
-show_errors(void)
+static inline void
+validate_name(const char *name)
 {
-	int rc = 1;
-
-	if (!verbose_errors)
-		return;
-
-	printf("Error trace:\n");
-	for (int i = 0; rc > 0; i++) {
-		char *filename = NULL;
-		char *function = NULL;
-		int line = 0;
-		char *message = NULL;
-		int error = 0;
-
-		rc = efi_error_get(i, &filename, &function, &line, &message,
-				   &error);
-		if (rc < 0)
-			err(1, "error fetching trace value");
-		if (rc == 0)
-			break;
-		printf(" %s:%d %s(): %s: %s", filename, line, function,
-		       strerror(error), message);
+	if (name == NULL) {
+err:
+		warnx("Invalid variable name \"%s\"",
+		      (name == NULL) ? "(null)" : name);
+		show_errors();
+		exit(1);
+	}
+	if (name[0] == '{') {
+		const char *next = strchr(name+1, '}');
+		if (!next)
+			goto err;
+		if (next[1] != '-')
+			goto err;
+		if (next[2] == '\000')
+			goto err;
+	} else {
+		if (strlen(name) < 38)
+			goto err;
+		if (name[8] != '-' || name[13] != '-' ||
+		    name[18] != '-' || name[23] != '-' ||
+		    name[36] != '-')
+			goto err;
 	}
 }
 
@@ -99,10 +88,7 @@ list_all_variables(void)
 	char *name = NULL;
 	int rc;
 	while ((rc = efi_get_next_variable_name(&guid, &name)) > 0)
-		 printf(GUID_FORMAT "-%s\n",
-			guid->a, guid->b, guid->c, bswap_16(guid->d),
-			guid->e[0], guid->e[1], guid->e[2], guid->e[3],
-			guid->e[4], guid->e[5], name);
+		 printf(GUID_FORMAT "-%s\n", GUID_FORMAT_ARGS(guid), name);
 
 	if (rc < 0) {
 		fprintf(stderr, "efivar: error listing variables: %m\n");
@@ -120,6 +106,8 @@ parse_name(const char *guid_name, char **name, efi_guid_t *guid)
 	off_t name_pos = 0;
 
 	const char *left, *right;
+
+	validate_name(guid_name);
 
 	left = strchr(guid_name, '{');
 	right = strchr(guid_name, '}');
@@ -172,36 +160,12 @@ bad_name:
 }
 
 static void
-show_variable(char *guid_name, int display_type)
+show_variable_data(efi_guid_t guid, const char *name, uint32_t attributes,
+		   uint8_t *data, size_t data_size,
+		   int display_type)
 {
-	efi_guid_t guid = efi_guid_empty;
-	char *name = NULL;
-	int rc;
-
-	uint8_t *data = NULL;
-	size_t data_size = 0;
-	uint32_t attributes;
-
-	parse_name(guid_name, &name, &guid);
-	if (!name || efi_guid_is_empty(&guid)) {
-		fprintf(stderr, "efivar: could not parse variable name.\n");
-		show_errors();
-		exit(1);
-	}
-
-	errno = 0;
-	rc = efi_get_variable(guid, name, &data, &data_size, &attributes);
-	if (rc < 0) {
-		fprintf(stderr, "efivar: show variable: %m\n");
-		show_errors();
-		exit(1);
-	}
-
 	if (display_type == SHOW_VERBOSE) {
-		printf("GUID: "GUID_FORMAT "\n",
-		       guid.a, guid.b, guid.c, bswap_16(guid.d),
-		       guid.e[0], guid.e[1], guid.e[2], guid.e[3],
-		       guid.e[4], guid.e[5]);
+		printf("GUID: "GUID_FORMAT "\n", GUID_FORMAT_ARGS(&guid));
 		printf("Name: \"%s\"\n", name);
 		printf("Attributes:\n");
 		for (int i = 0; attribute_names[i][0] != '\0'; i++) {
@@ -220,7 +184,7 @@ show_variable(char *guid_name, int display_type)
 				printf("%02x ", data[index]);
 				if (index % 8 == 7)
 					printf(" ");
-				if (isprint(data[index]))
+				if (safe_to_print(data[index]))
 					charbuf[index % 16] = data[index];
 				index++;
 				if (index % 16 == 0)
@@ -256,6 +220,117 @@ show_variable(char *guid_name, int display_type)
 		}
 		printf("\n");
 	}
+}
+
+static void
+show_variable(char *guid_name, int display_type)
+{
+	efi_guid_t guid = efi_guid_empty;
+	char *name = NULL;
+	int rc;
+
+	uint8_t *data = NULL;
+	size_t data_size = 0;
+	uint32_t attributes;
+
+	parse_name(guid_name, &name, &guid);
+	if (!name || efi_guid_is_empty(&guid)) {
+		fprintf(stderr, "efivar: could not parse variable name.\n");
+		show_errors();
+		exit(1);
+	}
+
+	errno = 0;
+	rc = efi_get_variable(guid, name, &data, &data_size, &attributes);
+	if (rc < 0) {
+		fprintf(stderr, "efivar: show variable: %m\n");
+		show_errors();
+		exit(1);
+	}
+
+	show_variable_data(guid, name, attributes,
+			   data, data_size, display_type);
+
+	free(name);
+	if (data)
+		free(data);
+}
+
+static void
+save_variable_data(efi_variable_t *var, char *outfile, bool dmpstore)
+{
+	FILE *out = NULL;
+	ssize_t sz;
+	uint8_t *data = NULL;
+	size_t datasz = 0;
+	ssize_t (*export)(efi_variable_t *var, uint8_t *data, size_t size) =
+		dmpstore ? efi_variable_export_dmpstore : efi_variable_export;
+
+	out = fopen(outfile, "w");
+	if (!out)
+		err(1, "Could not open \"%s\" for writing", outfile);
+
+	sz = export(var, data, datasz);
+	data = calloc(sz, 1);
+	if (!data)
+		err(1, "Could not allocate memory");
+	datasz = sz;
+
+	sz = export(var, data, datasz);
+	if (sz < 0)
+		err(1, "Could not format data");
+	datasz = sz;
+
+	sz = fwrite(data, 1, datasz, out);
+	if (sz < (ssize_t)datasz)
+		err(1, "Could not write to \"%s\"", outfile);
+
+	fflush(out);
+	fclose(out);
+}
+
+static void
+save_variable(char *guid_name, char *outfile, bool dmpstore)
+{
+	efi_guid_t guid = efi_guid_empty;
+	char *name = NULL;
+	int rc;
+
+	uint8_t *data = NULL;
+	size_t data_size = 0;
+	uint32_t attributes = 7;
+	efi_variable_t *var;
+
+	parse_name(guid_name, &name, &guid);
+	if (!name || efi_guid_is_empty(&guid)) {
+		fprintf(stderr, "efivar: could not parse variable name.\n");
+		show_errors();
+		exit(1);
+	}
+
+	errno = 0;
+	rc = efi_get_variable(guid, name, &data, &data_size, &attributes);
+	if (rc < 0) {
+		fprintf(stderr, "efivar: show variable: %m\n");
+		show_errors();
+		exit(1);
+	}
+
+	var = efi_variable_alloc();
+	if (!var) {
+		fprintf(stderr, "efivar: could not allocate variable storage.\n");
+		show_errors();
+		exit(1);
+	}
+
+	efi_variable_set_name(var, (unsigned char *)name);
+	efi_variable_set_guid(var, &guid);
+	efi_variable_set_attributes(var, attributes);
+	efi_variable_set_data(var, data, data_size);
+
+	save_variable_data(var, outfile, dmpstore);
+
+	efi_variable_free(var, false);
 
 	free(name);
 	if (data)
@@ -281,7 +356,7 @@ edit_variable(const char *guid_name, void *data, size_t data_size,
 	}
 
 	rc = efi_get_variable(guid, name, &old_data, &old_data_size,
-				&old_attributes);
+			      &old_attributes);
 	if (rc < 0 && edit_type != EDIT_WRITE) {
 		fprintf(stderr, "efivar: %m\n");
 		show_errors();
@@ -293,12 +368,14 @@ edit_variable(const char *guid_name, void *data, size_t data_size,
 
 	switch (edit_type){
 		case EDIT_APPEND:
-			rc = efi_append_variable(guid, name, data, data_size,
-					old_attributes);
+			rc = efi_append_variable(guid, name,
+						 data, data_size,
+						 old_attributes);
 			break;
 		case EDIT_WRITE:
-			rc = efi_set_variable(guid, name, data, data_size,
-					old_attributes, 0644);
+			rc = efi_set_variable(guid, name,
+					      data, data_size,
+					      old_attributes, 0644);
 			break;
 	}
 
@@ -314,17 +391,7 @@ edit_variable(const char *guid_name, void *data, size_t data_size,
 }
 
 static void
-validate_name(const char *name)
-{
-	if (name == NULL) {
-		fprintf(stderr, "Invalid variable name\n");
-		show_errors();
-		exit(1);
-	}
-}
-
-static void
-prepare_data(const char *filename, void **data, size_t *data_size)
+prepare_data(const char *filename, uint8_t **data, size_t *data_size)
 {
 	int fd = -1;
 	void *buf;
@@ -341,14 +408,14 @@ prepare_data(const char *filename, void **data, size_t *data_size)
 	if (fd < 0)
 		goto err;
 
-	memset(&statbuf, '\0', sizeof (statbuf));
+	memset(&statbuf, '\0', sizeof(statbuf));
 	rc = fstat(fd, &statbuf);
 	if (rc < 0)
 		goto err;
 
 	buflen = statbuf.st_size;
 	buf = mmap(NULL, buflen, PROT_READ, MAP_PRIVATE|MAP_POPULATE, fd, 0);
-	if (!buf)
+	if (buf == MAP_FAILED)
 		goto err;
 
 	*data = buf;
@@ -363,25 +430,31 @@ err:
 	exit(1);
 }
 
-static void
-usage(const char *progname)
+static void __attribute__((__noreturn__))
+usage(int ret)
 {
-	printf("Usage: %s [OPTION...]\n", basename(progname));
-	printf("  -l, --list                        list current variables\n");
-	printf("  -p, --print                       print variable specified by --name\n");
-	printf("  -d, --print-decimal               print variable in decimal values specified\n");
-	printf("                                    by --name\n");
-	printf("  -n, --name=<guid-name>            variable to manipulate, in the form\n");
-	printf("                                    8be4df61-93ca-11d2-aa0d-00e098032b8c-Boot0000\n");
-	printf("  -a, --append                      append to variable specified by --name\n");
-	printf("  -f, --fromfile=<file>             use data from <file>\n");
-	printf("  -t, --attributes=<attributes>     attributes to use on append\n");
-	printf("  -L, --list-guids                  show internal guid list\n");
-	printf("  -w, --write                       write to variable specified by --name\n\n");
-	printf("Help options:\n");
-	printf("  -?, --help                        Show this help message\n");
-	printf("      --usage                       Display brief usage message\n");
-	return;
+	FILE *out = ret == 0 ? stdout : stderr;
+	fprintf(out,
+		"Usage: %s [OPTION...]\n"
+		"  -A, --attributes=<attributes>     attributes to use on append\n"
+		"  -l, --list                        list current variables\n"
+		"  -p, --print                       print variable specified by --name\n"
+		"  -D, --dmpstore                    use DMPSTORE format when exporting\n"
+		"  -d, --print-decimal               print variable in decimal values specified\n"
+		"                                    by --name\n"
+		"  -n, --name=<guid-name>            variable to manipulate, in the form\n"
+		"                                    8be4df61-93ca-11d2-aa0d-00e098032b8c-Boot0000\n"
+		"  -a, --append                      append to variable specified by --name\n"
+		"  -f, --datafile=<file>             load or save variable contents from <file>\n"
+		"  -e, --export=<file>               export variable to <file>\n"
+		"  -i, --import=<file>               import variable from <file\n"
+		"  -L, --list-guids                  show internal guid list\n"
+		"  -w, --write                       write to variable specified by --name\n\n"
+		"Help options:\n"
+		"  -?, --help                        Show this help message\n"
+		"      --usage                       Display brief usage message\n",
+		program_invocation_short_name);
+	exit(ret);
 }
 
 int main(int argc, char *argv[])
@@ -389,73 +462,96 @@ int main(int argc, char *argv[])
 	int c = 0;
 	int i = 0;
 	int action = 0;
-	void *data = NULL;
+	uint8_t *data = NULL;
 	size_t data_size = 0;
-	char *name = NULL;
-	char *file = NULL;
-	uint32_t attributes = 0;
-	char *sopts = "lpdn:af:t:Lw?";
-	struct option lopts[] =
-		{ {"list", no_argument, 0, 'l'},
-		  {"print", no_argument, 0, 'p'},
-		  {"print-decimal", no_argument, 0, 'd'},
-		  {"name", required_argument, 0, 'n'},
-		  {"append", no_argument, 0, 'a'},
-		  {"fromfile", required_argument, 0, 'f'},
-		  {"attributes", required_argument, 0, 't'},
-		  {"list-guids", no_argument, 0, 'L'},
-		  {"write", no_argument, 0, 'w'},
-		  {"help", no_argument, 0, '?'},
-		  {"usage", no_argument, 0, 0},
-		  {0, 0, 0, 0}
-		};
+	char *guid_name = NULL;
+	char *infile = NULL;
+	char *outfile = NULL;
+	char *datafile = NULL;
+	bool dmpstore = false;
+	int verbose = 0;
+	uint32_t attributes = EFI_VARIABLE_NON_VOLATILE
+			      | EFI_VARIABLE_BOOTSERVICE_ACCESS
+			      | EFI_VARIABLE_RUNTIME_ACCESS;
+	char *sopts = "aA:Dde:f:i:Llpn:vw?";
+	struct option lopts[] = {
+		{"append", no_argument, 0, 'a'},
+		{"attributes", required_argument, 0, 'A'},
+		{"datafile", required_argument, 0, 'f'},
+		{"dmpstore", no_argument, 0, 'D'},
+		{"export", required_argument, 0, 'e'},
+		{"help", no_argument, 0, '?'},
+		{"import", required_argument, 0, 'i'},
+		{"list", no_argument, 0, 'l'},
+		{"list-guids", no_argument, 0, 'L'},
+		{"name", required_argument, 0, 'n'},
+		{"print", no_argument, 0, 'p'},
+		{"print-decimal", no_argument, 0, 'd'},
+		{"usage", no_argument, 0, 0},
+		{"verbose", no_argument, 0, 'v'},
+		{"write", no_argument, 0, 'w'},
+		{0, 0, 0, 0}
+	};
 
 	while ((c = getopt_long(argc, argv, sopts, lopts, &i)) != -1) {
 		switch (c) {
-			case 'l':
-				action |= ACTION_LIST;
-				break;
-			case 'p':
-				action |= ACTION_PRINT;
-				break;
-			case 'd':
-				action |= ACTION_PRINT_DEC;
-				break;
-			case 'n':
-				name = optarg;
+			case 'A':
+				attributes = strtoul(optarg, NULL, 10);
+				if (errno == ERANGE || errno == EINVAL)
+					err(1, "invalid argument for -A: %s",
+					    optarg);
 				break;
 			case 'a':
 				action |= ACTION_APPEND;
 				break;
-			case 'f':
-				file = optarg;
+			case 'D':
+				dmpstore = true;
 				break;
-			case 't':
-				attributes = strtoul(optarg, NULL, 10);
-				if (errno == ERANGE || errno == EINVAL) {
-					fprintf(stderr, "invalid argument for -t: %s: %s\n", optarg, strerror(errno));
-					return EXIT_FAILURE;
-				}
+			case 'd':
+				action |= ACTION_PRINT_DEC;
+				break;
+			case 'e':
+				action |= ACTION_EXPORT;
+				outfile = optarg;
+				break;
+			case 'f':
+				datafile = optarg;
+				break;
+			case 'i':
+				action |= ACTION_IMPORT;
+				infile = optarg;
 				break;
 			case 'L':
 				action |= ACTION_LIST_GUIDS;
+				break;
+			case 'l':
+				action |= ACTION_LIST;
+				break;
+			case 'n':
+				guid_name = optarg;
+				break;
+			case 'p':
+				action |= ACTION_PRINT;
+				break;
+			case 'v':
+				verbose += 1;
 				break;
 			case 'w':
 				action |= ACTION_WRITE;
 				break;
 			case '?':
-				usage(argv[0]);
-				return EXIT_SUCCESS;
+				usage(EXIT_SUCCESS);
+				break;
 			case 0:
-				if (strcmp(lopts[i].name, "usage")) {
-					usage(argv[0]);
-					return EXIT_SUCCESS;
-				}
+				if (strcmp(lopts[i].name, "usage"))
+					usage(EXIT_SUCCESS);
 				break;
 		}
 	}
 
-	if (name)
+	efi_set_verbose(verbose, stderr);
+
+	if (guid_name && !outfile)
 		action |= ACTION_PRINT;
 
 	switch (action) {
@@ -463,49 +559,138 @@ int main(int argc, char *argv[])
 			list_all_variables();
 			break;
 		case ACTION_PRINT:
-			validate_name(name);
-			show_variable(name, SHOW_VERBOSE);
+			show_variable(guid_name, SHOW_VERBOSE);
 			break;
 		case ACTION_PRINT_DEC | ACTION_PRINT:
-			validate_name(name);
-			show_variable(name, SHOW_DECIMAL);
+			show_variable(guid_name, SHOW_DECIMAL);
 			break;
 		case ACTION_APPEND | ACTION_PRINT:
-			validate_name(name);
-			prepare_data(file, &data, &data_size);
-			edit_variable(name, data, data_size, attributes,
+			prepare_data(datafile, &data, &data_size);
+			edit_variable(guid_name, data, data_size, attributes,
 				      EDIT_APPEND);
 			break;
 		case ACTION_WRITE | ACTION_PRINT:
-			validate_name(name);
-			prepare_data(file, &data, &data_size);
-			edit_variable(name, data, data_size, attributes,
+			prepare_data(datafile, &data, &data_size);
+			edit_variable(guid_name, data, data_size, attributes,
 				      EDIT_WRITE);
 			break;
 		case ACTION_LIST_GUIDS: {
-			efi_guid_t sentinal = {0xffffffff,0xffff,0xffff,0xffff,
-					       {0xff,0xff,0xff,0xff,0xff,0xff}};
-			extern struct guidname efi_well_known_guids[];
-			extern struct guidname efi_well_known_guids_end;
-			intptr_t start = (intptr_t)&efi_well_known_guids;
-			intptr_t end = (intptr_t)&efi_well_known_guids_end;
-			unsigned int i;
+			const struct efivar_guidname *guid = &efi_well_known_guids[0];
+			const uint64_t n = efi_n_well_known_guids;
+			size_t i;
 
-			struct guidname *guid = &efi_well_known_guids[0];
-			for (i = 0; i < (end-start) / sizeof(*guid); i++) {
-				if (!efi_guid_cmp(&sentinal, &guid[i].guid))
-					break;
-				printf("{"GUID_FORMAT"} {%s} %s %s\n",
-					guid[i].guid.a, guid[i].guid.b,
-					guid[i].guid.c, bswap_16(guid[i].guid.d),
-					guid[i].guid.e[0], guid[i].guid.e[1],
-					guid[i].guid.e[2], guid[i].guid.e[3],
-					guid[i].guid.e[4], guid[i].guid.e[5],
-					guid[i].symbol + strlen("efi_guid_"),
-					guid[i].symbol, guid[i].name);
+			debug("&guid[0]:%p n:%lu end:%p", &guid[0], n, &guid[n]);
+			for (i = 0; i < n; i++) {
+				printf("{"GUID_FORMAT"}\t",
+				       GUID_FORMAT_ARGS(&guid[i].guid));
+				printf("{%s}\t", guid[i].name);
+				printf("%s\t", guid[i].symbol);
+				printf("%s\n", guid[i].description);
 			}
-		}
+			break;
+					}
+		case ACTION_EXPORT:
+			if (datafile) {
+				char *name = NULL;
+				efi_guid_t guid = efi_guid_zero;
+				efi_variable_t *var;
+
+				parse_name(guid_name, &name, &guid);
+				prepare_data(datafile, &data, &data_size);
+
+				var = efi_variable_alloc();
+				if (!var)
+					err(1, "Could not allocate memory");
+
+				efi_variable_set_name(var, (unsigned char *)name);
+				efi_variable_set_guid(var, &guid);
+				efi_variable_set_attributes(var, attributes);
+				efi_variable_set_data(var, data, data_size);
+
+				save_variable_data(var, outfile, dmpstore);
+
+				efi_variable_free(var, false);
+			} else {
+				save_variable(guid_name, outfile, dmpstore);
+			}
+			break;
+		case ACTION_IMPORT:
+		case ACTION_IMPORT | ACTION_PRINT:
+		case ACTION_IMPORT | ACTION_PRINT | ACTION_PRINT_DEC:
+			{
+				ssize_t sz;
+				efi_variable_t *var = NULL;
+				char *name;
+				efi_guid_t *guid;
+				uint64_t attributes;
+				int display_type = (action & ACTION_PRINT_DEC)
+					? SHOW_VERBOSE|SHOW_DECIMAL
+					: SHOW_VERBOSE;
+
+
+				prepare_data(infile, &data, &data_size);
+				sz = efi_variable_import(data, data_size, &var);
+				if (sz < 0)
+					err(1, "Could not import data from \"%s\"", infile);
+
+				free(data);
+				data = NULL;
+				data_size = 0;
+
+				name = (char *)efi_variable_get_name(var);
+				efi_variable_get_guid(var, &guid);
+				efi_variable_get_attributes(var, &attributes);
+				efi_variable_get_data(var, &data, &data_size);
+
+				if (datafile) {
+					FILE *out;
+					int rc;
+
+					out = fopen(datafile, "w");
+					if (!out)
+						err(1, "Could not open \"%s\" for writing",
+						    datafile);
+
+					rc = fwrite(data, data_size, 1, out);
+					if (rc < (long)data_size)
+						err(1, "Could not write to \"%s\"",
+						    datafile);
+
+					fclose(out);
+					free(guid_name);
+				}
+				if (action & ACTION_PRINT)
+					show_variable_data(*guid, name,
+						((uint32_t)(attributes & 0xffffffff)),
+						 data, data_size, display_type);
+
+				efi_variable_free(var, false);
+				break;
+			}
+		case ACTION_IMPORT | ACTION_EXPORT:
+			{
+				efi_variable_t *var = NULL;
+				ssize_t sz;
+
+				if (datafile)
+					errx(1, "--datafile cannot be used with --import and --export");
+
+				prepare_data(infile, &data, &data_size);
+				sz = efi_variable_import(data, data_size, &var);
+				if (sz < 0)
+					err(1, "Could not import data from \"%s\"", infile);
+
+				save_variable_data(var, outfile, dmpstore);
+
+				efi_variable_free(var, false);
+				break;
+			}
+		case ACTION_USAGE:
+		default:
+			usage(EXIT_FAILURE);
 	};
 
 	return 0;
 }
+
+// vim:fenc=utf-8:tw=75:noet

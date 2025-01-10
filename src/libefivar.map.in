@@ -30,6 +30,7 @@ libefivar.so.0 {
 		efi_variable_set_name;
 		efi_variables_supported;
 		efi_well_known_guids;
+		efi_well_known_guids_;
 		efi_well_known_guids_end;
 		efidp_append_instance;
 		efidp_append_node;
@@ -127,3 +128,39 @@ LIBEFIVAR_1.36 {
 		efi_get_verbose;
 		efi_get_logfile;
 } LIBEFIVAR_1.35;
+
+LIBEFIVAR_1.37 {
+} LIBEFIVAR_1.36;
+
+LIBEFIVAR_1.38 {
+	global: efi_error_pop;
+		efi_set_loglevel;
+		efi_get_libefivar_version;
+		efi_guid_asus;
+		efi_guid_auto_created_boot_option;
+		efi_guid_canonical;
+		efi_guid_dell;
+		efi_guid_external_management;
+		efi_guid_fives;
+		efi_guid_grub;
+		efi_guid_supermicro;
+		efi_variable_alloc;
+		efi_variable_export_dmpstore;
+		efi_well_known_names;
+		efi_well_known_names_;
+		efi_well_known_names_end;
+		efi_n_well_known_names;
+		efi_n_well_known_guids;
+
+		tm_to_efi_time;
+		efi_time_to_tm;
+		efi_asctime;
+		efi_asctime_r;
+		efi_gmtime;
+		efi_gmtime_r;
+		efi_localtime;
+		efi_localtime_r;
+		efi_mktime;
+		efi_strptime;
+		efi_strftime;
+} LIBEFIVAR_1.37;
