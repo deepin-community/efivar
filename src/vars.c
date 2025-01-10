@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2013 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -247,9 +233,7 @@ vars_get_variable_size(efi_guid_t guid, const char *name, size_t *size)
 
 	char *path = NULL;
 	int rc = asprintf(&path, "%s%s-"GUID_FORMAT"/size", get_vars_path(),
-			  name, guid.a, guid.b, guid.c, bswap_16(guid.d),
-			  guid.e[0], guid.e[1], guid.e[2], guid.e[3],
-			  guid.e[4], guid.e[5]);
+			  name, GUID_FORMAT_ARGS(&guid));
 	if (rc < 0) {
 		efi_error("asprintf failed");
 		goto err;
@@ -317,11 +301,8 @@ vars_get_variable(efi_guid_t guid, const char *name, uint8_t **data,
 	 */
 	ratelimit = geteuid() == 0 ? 0 : 10000;
 
-	rc = asprintf(&path, "%s%s-" GUID_FORMAT "/raw_var",
-			  get_vars_path(),
-			  name, guid.a, guid.b, guid.c, bswap_16(guid.d),
-			  guid.e[0], guid.e[1], guid.e[2],
-			  guid.e[3], guid.e[4], guid.e[5]);
+	rc = asprintf(&path, "%s%s-" GUID_FORMAT "/raw_var", get_vars_path(),
+		      name, GUID_FORMAT_ARGS(&guid));
 	if (rc < 0) {
 		efi_error("asprintf failed");
 		goto err;
@@ -411,11 +392,8 @@ vars_del_variable(efi_guid_t guid, const char *name)
 	size_t buf_size = 0;
 	char *delvar;
 
-	rc = asprintf(&path, "%s%s-" GUID_FORMAT "/raw_var",
-			  get_vars_path(),
-			  name, guid.a, guid.b, guid.c, bswap_16(guid.d),
-			  guid.e[0], guid.e[1], guid.e[2],
-			  guid.e[3], guid.e[4], guid.e[5]);
+	rc = asprintf(&path, "%s%s-" GUID_FORMAT "/raw_var", get_vars_path(),
+		      name, GUID_FORMAT_ARGS(&guid));
 	if (rc < 0) {
 		efi_error("asprintf failed");
 		goto err;
@@ -481,10 +459,6 @@ static int
 _vars_chmod_variable(char *path, mode_t mode)
 {
 	mode_t mask = umask(umask(0));
-	size_t len = strlen(path);
-	char c = path[len - 5];
-	path[len - 5] = '\0';
-
 	char *files[] = {
 		"", "attributes", "data", "guid", "raw_var", "size", NULL
 		};
@@ -508,7 +482,6 @@ _vars_chmod_variable(char *path, mode_t mode)
 			ret = -1;
 		}
 	}
-	path[len - 5] = c;
 	errno = saved_errno;
 	return ret;
 }
@@ -523,9 +496,7 @@ vars_chmod_variable(efi_guid_t guid, const char *name, mode_t mode)
 
 	char *path;
 	int rc = asprintf(&path, "%s%s-" GUID_FORMAT, get_vars_path(),
-			  name, guid.a, guid.b, guid.c, bswap_16(guid.d),
-			  guid.e[0], guid.e[1], guid.e[2], guid.e[3],
-			  guid.e[4], guid.e[5]);
+			  name, GUID_FORMAT_ARGS(&guid));
 	if (rc < 0) {
 		efi_error("asprintf failed");
 		return -1;
@@ -563,9 +534,7 @@ vars_set_variable(efi_guid_t guid, const char *name, uint8_t *data,
 
 	char *path;
 	int rc = asprintf(&path, "%s%s-" GUID_FORMAT "/data", get_vars_path(),
-			  name, guid.a, guid.b, guid.c, bswap_16(guid.d),
-			  guid.e[0], guid.e[1], guid.e[2], guid.e[3],
-			  guid.e[4], guid.e[5]);
+			  name, GUID_FORMAT_ARGS(&guid));
 	if (rc < 0) {
 		efi_error("asprintf failed");
 		goto err;
@@ -670,3 +639,5 @@ struct efi_var_operations vars_ops = {
 	.get_next_variable_name = vars_get_next_variable_name,
 	.chmod_variable = vars_chmod_variable,
 };
+
+// vim:fenc=utf-8:tw=75:noet

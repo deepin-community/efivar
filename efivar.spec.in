@@ -2,13 +2,21 @@ Name:           efivar
 Version:        @@VERSION@@
 Release:        1%{?dist}
 Summary:        Tools to manage UEFI variables
-License:        LGPLv2.1
-URL:            https://github.com/rhinstaller/efivar
+License:        LGPL-2.1-only
+URL:            https://github.com/rhboot/efivar
 Requires:       %{name}-libs = %{version}-%{release}
-ExclusiveArch:  %{ix86} x86_64 aarch64
+ExclusiveArch:  %{efi}
 
-BuildRequires:  git glibc-static libabigail
-Source0:        https://github.com/rhboot/efivar/archive/%{version}.tar.gz
+BuildRequires:  efi-srpm-macros
+BuildRequires:  gcc
+BuildRequires:  git
+BuildRequires:  glibc-static
+BuildRequires:  libabigail
+BuildRequires:  mandoc
+BuildRequires:  make
+# please don't fix this to reflect github's incomprehensible url that goes
+# to a different tarball.
+Source0:        https://github.com/rhboot/efivar/releases/download/%{version}/efivar-%{version}.tar.bz2
 
 %description
 efivar provides a simple command line interface to the UEFI variable facility.
@@ -38,30 +46,29 @@ git config --unset user.email
 git config --unset user.name
 
 %build
-make LIBDIR=%{_libdir} BINDIR=%{_bindir} CFLAGS="$RPM_OPT_FLAGS -flto" LDFLAGS="$RPM_LD_FLAGS -flto"
+%define _lto_cflags %{nil}
+
+make LIBDIR=%{_libdir} BINDIR=%{_bindir} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
 
 %install
-rm -rf $RPM_BUILD_ROOT
 %makeinstall
-
-%clean
-rm -rf $RPM_BUILD_ROOT
+install -m 0644 src/abignore %{buildroot}%{_includedir}/efivar/.abignore
 
 %check
 %ifarch x86_64
 make abicheck
 %endif
 
-%post libs -p /sbin/ldconfig
-
-%postun libs -p /sbin/ldconfig
+%ldconfig_scriptlets libs
 
 %files
 %{!?_licensedir:%global license %%doc}
 %license COPYING
 %doc README.md
 %{_bindir}/efivar
+%{_bindir}/efisecdb
 %exclude %{_bindir}/efivar-static
+%exclude %{_bindir}/efisecdb-static
 %{_mandir}/man1/*
 
 %files devel

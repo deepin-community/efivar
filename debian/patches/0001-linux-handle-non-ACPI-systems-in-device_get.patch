@@ -1,0 +1,41 @@
+From: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+Date: Wed, 2 Aug 2023 19:16:42 +0200
+Subject: linux: handle non-ACPI systems in device_get()
+
+/sys/devices/pci0000:00/firmware_node/hid does not exist on all systems.
+Kernel parameter acpi=off has been reported as one possible reason in
+https://github.com/rhboot/efivar/issues/120
+But this is not the only case. On systems using device trees you may also
+not find this file.
+
+We have multiple parsers in dev_probes[]. It is sufficient that one of
+these parsers succeeds to provide the device information.
+
+If for instance pci_root_parser and pci_parser fails, we may still get
+information from nvme_parser.
+
+If a parser fails, only write a debug information and continue.
+
+Signed-off-by: Heinrich Schuchardt <heinrich.schuchardt@canonical.com>
+
+Origin: https://github.com/rhboot/efivar/pull/246/commits/b1209a10c55836fcd63dfcbe7e84ac6a7d4a2238
+Forwarded: yes
+---
+ src/linux.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/linux.c b/src/linux.c
+index 47e45ae..fbd3a14 100644
+--- a/src/linux.c
++++ b/src/linux.c
+@@ -525,8 +525,8 @@ struct device HIDDEN
+ 	        debug("trying %s", probe->name);
+ 	        pos = probe->parse(dev, current, dev->link);
+ 	        if (pos < 0) {
+-	                efi_error("parsing %s failed", probe->name);
+-	                goto err;
++	                debug("parsing %s failed", probe->name);
++	                continue;
+ 	        } else if (pos > 0) {
+ 			char match[pos+1];
+ 

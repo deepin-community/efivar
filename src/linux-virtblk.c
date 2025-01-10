@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefiboot - library for the manipulation of EFI boot variables
- * Copyright 2012-2018 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
+ * Copyright 2012-2019 Red Hat, Inc.
  */
 
 #include "fix_coverity.h"
@@ -45,43 +31,40 @@
  * But usually we just write the HD() entry, of course.
  */
 static ssize_t
-parse_virtblk(struct device *dev, const char *current, const char *root UNUSED)
+parse_virtblk(struct device *dev, const char *path, const char *root UNUSED)
 {
-        uint32_t tosser;
-        int pos;
-        int rc;
-        char *spaces;
+	const char *current = path;
+	uint32_t tosser;
+	int pos0 = -1, pos1 = -1;
+	int rc;
 
-        pos = strlen(current);
-        spaces = alloca(pos+1);
-        memset(spaces, ' ', pos+1);
-        spaces[pos] = '\0';
-        pos = 0;
+	debug("entry");
 
-        debug("entry");
+	debug("searching for virtio0/");
+	rc = sscanf(current, "%nvirtio%x/%n", &pos0, &tosser, &pos1);
+	debug("current:'%s' rc:%d pos0:%d pos1:%d\n", current, rc, pos0, pos1);
+	dbgmk("         ", pos0, pos1);
+	/*
+	 * If we couldn't find virtioX/ then it isn't a virtio device.
+	 */
+	if (rc < 1)
+	        return 0;
 
-        debug("searching for virtio0/");
-        rc = sscanf(current, "virtio%x/%n", &tosser, &pos);
-        debug("current:\"%s\" rc:%d pos:%d\n", current, rc, pos);
-        arrow(LOG_DEBUG, spaces, 9, pos, rc, 1);
-        /*
-         * If we couldn't find virtioX/ then it isn't a virtio device.
-         */
-        if (rc < 1)
-                return 0;
+	dev->interface_type = virtblk;
+	current += pos1;
 
-        dev->interface_type = virtblk;
-
-        return pos;
+	debug("current:'%s' sz:%zd\n", current, current - path);
+	return current - path;
 }
 
 enum interface_type virtblk_iftypes[] = { virtblk, unknown };
 
 struct dev_probe HIDDEN virtblk_parser = {
-        .name = "virtio block",
-        .iftypes = virtblk_iftypes,
-        .flags = DEV_PROVIDES_HD,
-        .parse = parse_virtblk,
-        .create = NULL,
+	.name = "virtio block",
+	.iftypes = virtblk_iftypes,
+	.flags = DEV_PROVIDES_HD,
+	.parse = parse_virtblk,
+	.create = NULL,
 };
 
+// vim:fenc=utf-8:tw=75:noet

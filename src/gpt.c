@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * gpt.[ch]
  * Copyright (C) 2000-2001 Dell Computer Corporation <Matt_Domsch@dell.com>
@@ -5,21 +6,6 @@
  * EFI GUID Partition Table handling
  * Per Intel EFI Specification v1.02
  * http://developer.intel.com/technology/efi/efi.htm
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -49,47 +35,29 @@ struct blkdev_ioctl_param {
 };
 
 /**
- * efi_crc32() - EFI version of crc32 function
- * @buf: buffer to calculate crc32 of
- * @len - length of buf
- *
- * Description: Returns EFI-style CRC32 value for @buf
- *
- * This function uses the little endian Ethernet polynomial
- * but seeds the function with ~0, and xor's with ~0 at the end.
- * Note, the EFI Specification, v1.02, has a reference to
- * Dr. Dobbs Journal, May 1994 (actually it's in May 1992).
- */
-static inline uint32_t
-efi_crc32(const void *buf, unsigned long len)
-{
-	return (crc32(buf, len, ~0L) ^ ~0L);
-}
-
-/**
  * is_pmbr_valid(): test Protective MBR for validity
  * @mbr: pointer to a legacy mbr structure
  *
  * Description: Returns 1 if PMBR is valid, 0 otherwise.
  * Validity depends on two things:
- *  1) MSDOS signature is in the last two bytes of the MBR
+ *  1) MSDOS magic is in the last two bytes of the MBR
  *  2) One partition of type 0xEE is found
  */
 static int
 is_pmbr_valid(legacy_mbr *mbr)
 {
-	int i, found = 0, signature = 0;
+	int i, found = 0, magic = 0;
 	if (!mbr)
 		return 0;
-	signature = (le16_to_cpu(mbr->signature) == MSDOS_MBR_SIGNATURE);
-	for (i = 0; signature && i < 4; i++) {
+	magic = (le16_to_cpu(mbr->magic) == MSDOS_MBR_MAGIC);
+	for (i = 0; magic && i < 4; i++) {
 		if (mbr->partition[i].os_type ==
 		    EFI_PMBR_OSTYPE_EFI_GPT) {
 			found = 1;
 			break;
 		}
 	}
-	return (signature && found);
+	return (magic && found);
 }
 
 /**
@@ -389,11 +357,11 @@ is_gpt_valid(int fd, uint64_t lba,
 	if (!(*gpt = alloc_read_gpt_header(fd, lba)))
 		return 0;
 
-	/* Check the GUID Partition Table signature */
-	if (le64_to_cpu((*gpt)->signature) != GPT_HEADER_SIGNATURE) {
-		efi_error("GUID Partition Table Header signature is wrong: %"PRIx64" != %"PRIx64,
-			  (uint64_t)le64_to_cpu((*gpt)->signature),
-			  GPT_HEADER_SIGNATURE);
+	/* Check the GUID Partition Table magic */
+	if (le64_to_cpu((*gpt)->magic) != GPT_HEADER_MAGIC) {
+		efi_error("GUID Partition Table Header magic is wrong: %"PRIx64" != %"PRIx64,
+			  (uint64_t)le64_to_cpu((*gpt)->magic),
+			  GPT_HEADER_MAGIC);
 		free(*gpt);
 		*gpt = NULL;
 		return rc;
@@ -673,7 +641,7 @@ find_valid_gpt(int fd, gpt_header ** gpt, gpt_entry ** ptes,
 
 	/* Would fail due to bad PMBR, but force GPT anyhow */
 	if ((good_pgpt || good_agpt) && !good_pmbr && ignore_pmbr_err) {
-		efi_error("  Warning: Disk has a valid GPT signature but invalid PMBR.\n"
+		efi_error("  Warning: Disk has a valid GPT magic but invalid PMBR.\n"
 			  "  Use GNU Parted to correct disk.\n"
 			  "  gpt option taken, disk treated as GPT.");
 	}
@@ -729,7 +697,7 @@ find_valid_gpt(int fd, gpt_header ** gpt, gpt_entry ** ptes,
  ************************************************************/
 int NONNULL(3, 4, 5, 6, 7) HIDDEN
 gpt_disk_get_partition_info(int fd, uint32_t num, uint64_t * start,
-			    uint64_t * size, uint8_t *signature,
+			    uint64_t * size, efi_guid_t *signature,
 			    uint8_t * mbr_type, uint8_t * signature_type,
 			    int ignore_pmbr_error, int logical_block_size)
 {
@@ -781,3 +749,5 @@ gpt_disk_get_partition_info(int fd, uint32_t num, uint64_t * start,
  * tab-width: 8
  * End:
  */
+
+// vim:fenc=utf-8:tw=75:noet

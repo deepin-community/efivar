@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefiboot - library for the manipulation of EFI boot variables
  * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -243,13 +229,13 @@ efi_va_generate_file_device_path_from_esp(uint8_t *buf, ssize_t size,
 		va_end(aq);
 	}
 
-        if (!(options & (EFIBOOT_ABBREV_FILE|EFIBOOT_ABBREV_HD)) &&
-            (dev->flags & DEV_ABBREV_ONLY)) {
-                efi_error_clear();
-                errno = EINVAL;
-                efi_error("Device must use File() or HD() device path");
-                goto err;
-        }
+	if (!(options & (EFIBOOT_ABBREV_FILE|EFIBOOT_ABBREV_HD))
+	    && (dev->flags & DEV_ABBREV_ONLY)) {
+		efi_error_clear();
+		errno = EINVAL;
+		efi_error("Device must use File() or HD() device path");
+		goto err;
+	}
 
 	if ((options & EFIBOOT_ABBREV_EDD10)
 			&& (!(options & EFIBOOT_ABBREV_FILE)
@@ -290,7 +276,7 @@ efi_va_generate_file_device_path_from_esp(uint8_t *buf, ssize_t size,
 		}
 
 		sz = make_hd_dn(buf+off, size?size-off:0,
-                                disk_fd, dev->part, options);
+				disk_fd, dev->part, options);
 		saved_errno = errno;
 		close(disk_fd);
 		errno = saved_errno;
@@ -404,7 +390,7 @@ efi_generate_file_device_path(uint8_t *buf, ssize_t size,
 		efi_error("could not find parent device for file");
 		goto err;
 	}
-        debug("child_devpath:%s", child_devpath);
+	debug("child_devpath:%s", child_devpath);
 
 	debug("parent_devpath:%s", parent_devpath);
 	debug("child_devpath:%s", child_devpath);
@@ -511,3 +497,11 @@ efi_generate_ipv4_device_path(uint8_t *buf, ssize_t size,
 
 	return off;
 }
+
+uint32_t PUBLIC
+efi_get_libefiboot_version(void)
+{
+	return LIBEFIVAR_VERSION;
+}
+
+// vim:fenc=utf-8:tw=75:noet

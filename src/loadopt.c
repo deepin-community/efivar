@@ -1,22 +1,8 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefiboot - library for the manipulation of EFI boot variables
  * Copyright 2012-2015 Red Hat, Inc.
  * Copyright (C) 2001 Dell Computer Corporation <Matt_Domsch@dell.com>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -150,7 +136,9 @@ efi_loadopt_optional_data_size(efi_load_option *opt, size_t size)
 		efi_error("efi device path is not valid");
 		return -1;
 	}
-	sz = efidp_size((const_efidp)p);
+	for (sz = 0; sz < opt->file_path_list_length;
+	     sz += efidp_size((const_efidp)(p + sz)))
+		;
 	if (sz != opt->file_path_list_length) {
 		efi_error("size does not match file path size (%zd/%d)",
 			  sz, opt->file_path_list_length);
@@ -374,3 +362,5 @@ efi_loadopt_desc(efi_load_option *opt, ssize_t limit)
 	last_desc = ucs2_to_utf8(opt->description, limit);
 	return last_desc;
 }
+
+// vim:fenc=utf-8:tw=75:noet
