@@ -1,0 +1,13 @@
+Package: libefivar-dev
+Source: efivar
+Version: 38-3.1deepin1
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 105
+Depends: libefivar1 (= 38-3.1deepin1)
+Section: libdevel
+Priority: optional
+Multi-Arch: same
+Homepage: https://github.com/rhinstaller/efivar
+Description: Development headers for libefivar
+ development headers required to use libefivar

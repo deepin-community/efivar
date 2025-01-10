@@ -1,0 +1,6 @@
+eda52fb53f6a90bc5975d91540ac4a57  usr/include/efivar/efiboot-creator.h
+6af831f6ad295ca699ebb6341f492ba6  usr/include/efivar/efiboot-loadopt.h
+4c3749618ab7fd8a67e294abfcc7c6e1  usr/include/efivar/efiboot.h
+b938548ca767432539c3a485499b1a73  usr/lib/x86_64-linux-gnu/pkgconfig/efiboot.pc
+e9ff7e414381754a52759574d35cc33f  usr/share/doc/libefiboot-dev/changelog.Debian.gz
+5f5ce7358a4ff92e8437e8764dc7995f  usr/share/doc/libefiboot-dev/copyright

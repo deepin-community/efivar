@@ -1,0 +1,13 @@
+Package: libefisec-dev
+Source: efivar
+Version: 38-3.1deepin1
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 30
+Depends: libefisec1 (= 38-3.1deepin1)
+Section: libdevel
+Priority: optional
+Multi-Arch: same
+Homepage: https://github.com/rhinstaller/efivar
+Description: Development headers for libefisec
+ development headers required to use libefisec

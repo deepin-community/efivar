@@ -1,0 +1,12 @@
+3f688c771294022050f55d66725f58d6  usr/include/efivar/efivar-dp.h
+8893702688951d590f128869768fc912  usr/include/efivar/efivar-guids.h
+0462dba921a784b3ba913d1c06d3b10b  usr/include/efivar/efivar-time.h
+24e46d96eac693cc472d4e6abb29c1fc  usr/include/efivar/efivar-types.h
+afe250f8f54e3538899232bb29889fbc  usr/include/efivar/efivar.h
+cb3cdba4ac9924129d962c3b8c01621a  usr/lib/x86_64-linux-gnu/pkgconfig/efivar.pc
+55e0317410397b7046ac907259f0d222  usr/share/doc/libefivar-dev/README.Debian
+484d2fd57380e10779961f2fb2a6a9ce  usr/share/doc/libefivar-dev/README.md
+47625a3ce2058ea9ab5b4987c960ae19  usr/share/doc/libefivar-dev/changelog.Debian.gz
+5f5ce7358a4ff92e8437e8764dc7995f  usr/share/doc/libefivar-dev/copyright
+97ba56bc0dbec0ca47fc7735010e5be0  usr/share/man/man3/efi_get_variable.3.gz
+e148e957b38b421b12642ac898ae7150  usr/share/man/man3/efi_variable_t.3.gz

@@ -1,0 +1,3 @@
+usr/include/efivar/*sec*
+usr/lib/*/*sec*.so
+usr/lib/*/pkgconfig/*sec*

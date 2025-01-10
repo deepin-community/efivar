@@ -1,0 +1,6 @@
+4c38612384a5071ed7427ced41f64a31  usr/include/efivar/efisec-secdb.h
+5d093b07bdb16f09ee21c7ef68efd857  usr/include/efivar/efisec-types.h
+f656d2d13390896e86d740d678a27e4f  usr/include/efivar/efisec.h
+15b625534253cf74476ffe05f1df8a7c  usr/lib/x86_64-linux-gnu/pkgconfig/efisec.pc
+0a2bbfcb240505fea44953abfa170892  usr/share/doc/libefisec-dev/changelog.Debian.gz
+5f5ce7358a4ff92e8437e8764dc7995f  usr/share/doc/libefisec-dev/copyright

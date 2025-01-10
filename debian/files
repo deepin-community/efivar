@@ -1,0 +1,12 @@
+efivar-dbgsym_38-3.1deepin1_amd64.deb debug optional automatic=yes
+efivar_38-3.1deepin1_amd64.buildinfo libs optional
+efivar_38-3.1deepin1_amd64.deb admin optional
+libefiboot-dev_38-3.1deepin1_amd64.deb libdevel optional
+libefiboot1-dbgsym_38-3.1deepin1_amd64.deb debug optional automatic=yes
+libefiboot1_38-3.1deepin1_amd64.deb libs optional
+libefisec-dev_38-3.1deepin1_amd64.deb libdevel optional
+libefisec1-dbgsym_38-3.1deepin1_amd64.deb debug optional automatic=yes
+libefisec1_38-3.1deepin1_amd64.deb libs optional
+libefivar-dev_38-3.1deepin1_amd64.deb libdevel optional
+libefivar1-dbgsym_38-3.1deepin1_amd64.deb debug optional automatic=yes
+libefivar1_38-3.1deepin1_amd64.deb libs optional

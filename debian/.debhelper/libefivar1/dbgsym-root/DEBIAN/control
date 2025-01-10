@@ -1,0 +1,13 @@
+Package: libefivar1-dbgsym
+Source: efivar
+Version: 38-3.1deepin1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 189
+Depends: libefivar1 (= 38-3.1deepin1)
+Section: debug
+Priority: optional
+Multi-Arch: same
+Description: debug symbols for libefivar1
+Build-Ids: 49a4658e9e171162965e3ce3016bfffafb9a5c0c

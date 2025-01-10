@@ -1,22 +1,8 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefiboot - library for the manipulation of EFI boot variables
  * Copyright 2012-2015 Red Hat, Inc.
  * Copyright (C) 2000-2001 Dell Computer Corporation <Matt_Domsch@dell.com>
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -52,10 +38,11 @@ is_mbr_valid(legacy_mbr *mbr)
 	int ret;
 	if (!mbr)
 		return 0;
-	ret = (mbr->signature == MSDOS_MBR_SIGNATURE);
+	ret = (mbr->magic == MSDOS_MBR_MAGIC);
 	if (!ret) {
 		errno = ENOTTY;
-		efi_error("mbr signature is not MSDOS_MBR_SIGNATURE");
+		efi_error("mbr magic is 0x%04hx not MSDOS_MBR_MAGIC (0x%04hx)",
+			  mbr->magic, MSDOS_MBR_MAGIC);
 	}
 	return ret;
 }
@@ -78,11 +65,11 @@ msdos_disk_get_extended_partition_info (int fd UNUSED,
 					uint64_t *start UNUSED,
 					uint64_t *size UNUSED)
 {
-        /* Until I can handle these... */
-        //fprintf(stderr, "Extended partition info not supported.\n");
+	/* Until I can handle these... */
+	//fprintf(stderr, "Extended partition info not supported.\n");
 	errno = ENOSYS;
 	efi_error("extended partition info is not supported");
-        return -1;
+	return -1;
 }
 
 /************************************************************
@@ -100,7 +87,7 @@ msdos_disk_get_extended_partition_info (int fd UNUSED,
 static int
 msdos_disk_get_partition_info (int fd, int write_signature,
 			       legacy_mbr *mbr, uint32_t num, uint64_t *start,
-			       uint64_t *size, uint8_t *signature,
+			       uint64_t *size, uint32_t *signature,
 			       uint8_t *mbr_type, uint8_t *signature_type)
 {
 	int rc;
@@ -159,25 +146,25 @@ msdos_disk_get_partition_info (int fd, int write_signature,
 			return rc;
 		}
 	}
-	*(uint32_t *)signature = mbr->unique_mbr_signature;
+	*signature = mbr->unique_mbr_signature;
 
-        if (num > 4) {
+	if (num > 4) {
 		/* Extended partition */
-                rc = msdos_disk_get_extended_partition_info(fd, mbr, num,
+		rc = msdos_disk_get_extended_partition_info(fd, mbr, num,
 							    start, size);
 		if (rc < 0) {
 			efi_error("could not get extended partition info");
 			return rc;
 		}
-        } else if (num == 0) {
+	} else if (num == 0) {
 		/* Whole disk */
-                *start = 0;
+		*start = 0;
 		ioctl(fd, BLKGETSIZE, &disk_size);
-                *size = disk_size;
+		*size = disk_size;
 	} else if (num >= 1 && num <= 4) {
 		/* Primary partition */
-                *start = mbr->partition[num-1].starting_lba;
-                *size  = mbr->partition[num-1].size_in_lba;
+		*start = mbr->partition[num-1].starting_lba;
+		*size  = mbr->partition[num-1].size_in_lba;
 	}
 	return 0;
 }
@@ -185,7 +172,7 @@ msdos_disk_get_partition_info (int fd, int write_signature,
 static int
 get_partition_info(int fd, uint32_t options,
 		   uint32_t part, uint64_t *start, uint64_t *size,
-		   uint8_t *signature, uint8_t *mbr_type,
+		   partition_signature_t *signature, uint8_t *mbr_type,
 		   uint8_t *signature_type)
 {
 	legacy_mbr *mbr;
@@ -212,21 +199,15 @@ get_partition_info(int fd, uint32_t options,
 		goto error_free_mbr;
 	}
 	mbr = (legacy_mbr *)mbr_sector;
-	gpt_invalid = gpt_disk_get_partition_info(fd, part,
-						  start, size,
-						  signature,
-						  mbr_type,
-						  signature_type,
-			(options & EFIBOOT_OPTIONS_IGNORE_PMBR_ERR)?1:0,
-			sector_size);
+	gpt_invalid = gpt_disk_get_partition_info(
+	    fd, part, start, size, &signature->gpt_signature, mbr_type,
+	    signature_type, (options & EFIBOOT_OPTIONS_IGNORE_PMBR_ERR) ? 1 : 0,
+	    sector_size);
 	if (gpt_invalid < 0) {
-		mbr_invalid = msdos_disk_get_partition_info(fd,
-			(options & EFIBOOT_OPTIONS_WRITE_SIGNATURE)?1:0,
-							    mbr, part,
-							    start, size,
-							    signature,
-							    mbr_type,
-							    signature_type);
+		mbr_invalid = msdos_disk_get_partition_info(
+		    fd, (options & EFIBOOT_OPTIONS_WRITE_SIGNATURE) ? 1 : 0,
+		    mbr, part, start, size, &signature->mbr_signature, mbr_type,
+		    signature_type);
 		if (mbr_invalid < 0) {
 			efi_error("neither MBR nor GPT is valid");
 			rc = -1;
@@ -247,8 +228,10 @@ is_partitioned(int fd)
 	uint32_t options = 0;
 	uint32_t part = 1;
 	uint64_t start = 0, size = 0;
-	uint8_t signature = 0, mbr_type = 0, signature_type = 0;
+	uint8_t mbr_type = 0, signature_type = 0;
+	partition_signature_t signature;
 
+	memset(&signature, 0, sizeof(signature));
 	rc = get_partition_info(fd, options, part, &start, &size,
 				&signature, &mbr_type, &signature_type);
 	if (rc < 0)
@@ -258,10 +241,11 @@ is_partitioned(int fd)
 
 ssize_t HIDDEN
 make_hd_dn(uint8_t *buf, ssize_t size, int fd, int32_t partition,
-           uint32_t options)
+	   uint32_t options)
 {
 	uint64_t part_start=0, part_size = 0;
-	uint8_t signature[16]="", format=0, signature_type=0;
+	partition_signature_t signature;
+	uint8_t format=0, signature_type=0;
 	int rc;
 
 	errno = 0;
@@ -269,8 +253,9 @@ make_hd_dn(uint8_t *buf, ssize_t size, int fd, int32_t partition,
 	if (partition <= 0)
 		return 0;
 
+	memset(&signature, 0, sizeof(signature));
 	rc = get_partition_info(fd, options, partition, &part_start,
-				&part_size, signature, &format,
+				&part_size, &signature, &format,
 				&signature_type);
 	if (rc < 0) {
 		efi_error("could not get partition info");
@@ -278,8 +263,10 @@ make_hd_dn(uint8_t *buf, ssize_t size, int fd, int32_t partition,
 	}
 
 	rc = efidp_make_hd(buf, size, partition, part_start, part_size,
-			   signature, format, signature_type);
+			   (uint8_t *)&signature, format, signature_type);
 	if (rc < 0)
 		efi_error("could not make HD DP node");
 	return rc;
 }
+
+// vim:fenc=utf-8:tw=75:noet

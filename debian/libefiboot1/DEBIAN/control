@@ -1,0 +1,13 @@
+Package: libefiboot1
+Source: efivar
+Version: 38-3.1deepin1
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 130
+Depends: libc6 (>= 2.38), libefivar1 (>= 38)
+Section: libs
+Priority: optional
+Multi-Arch: same
+Homepage: https://github.com/rhinstaller/efivar
+Description: Library to manage UEFI variables
+ Library to allow for the manipulation of UEFI variables related to booting.

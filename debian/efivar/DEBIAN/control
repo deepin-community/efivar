@@ -1,0 +1,12 @@
+Package: efivar
+Version: 38-3.1deepin1
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 151
+Depends: libc6 (>= 2.38), libefisec1 (>= 38), libefivar1 (= 38-3.1deepin1), libefiboot1 (= 38-3.1deepin1)
+Section: admin
+Priority: optional
+Multi-Arch: foreign
+Homepage: https://github.com/rhinstaller/efivar
+Description: Tools to manage UEFI variables
+ efivar provides a simple command line interface to the UEFI variable facility.

@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2013 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -42,35 +28,51 @@ struct efi_var_operations default_ops = {
 
 struct efi_var_operations *ops = NULL;
 
+VERSION(_efi_set_variable, _efi_set_variable@libefivar.so.0)
 int NONNULL(2, 3) PUBLIC
 _efi_set_variable(efi_guid_t guid, const char *name, uint8_t *data,
 		  size_t data_size, uint32_t attributes)
 {
 	int rc;
+	if (!ops->set_variable) {
+		efi_error("set_variable() is not implemented");
+		errno = ENOSYS;
+		return -1;
+	}
 	rc = ops->set_variable(guid, name, data, data_size, attributes, 0600);
 	if (rc < 0)
 		efi_error("ops->set_variable() failed");
 	return rc;
 }
-VERSION(_efi_set_variable, _efi_set_variable@libefivar.so.0);
 
+VERSION(_efi_set_variable_variadic, efi_set_variable@libefivar.so.0)
 int NONNULL(2, 3) PUBLIC
 _efi_set_variable_variadic(efi_guid_t guid, const char *name, uint8_t *data,
 			   size_t data_size, uint32_t attributes, ...)
 {
 	int rc;
+	if (!ops->set_variable) {
+		efi_error("set_variable() is not implemented");
+		errno = ENOSYS;
+		return -1;
+	}
 	rc = ops->set_variable(guid, name, data, data_size, attributes, 0600);
 	if (rc < 0)
 		efi_error("ops->set_variable() failed");
 	return rc;
 }
-VERSION(_efi_set_variable_variadic, efi_set_variable@libefivar.so.0);
 
+VERSION(_efi_set_variable_mode,efi_set_variable@@LIBEFIVAR_0.24)
 int NONNULL(2, 3) PUBLIC
 _efi_set_variable_mode(efi_guid_t guid, const char *name, uint8_t *data,
 		       size_t data_size, uint32_t attributes, mode_t mode)
 {
 	int rc;
+	if (!ops->set_variable) {
+		efi_error("set_variable() is not implemented");
+		errno = ENOSYS;
+		return -1;
+	}
 	rc = ops->set_variable(guid, name, data, data_size, attributes, mode);
 	if (rc < 0)
 		efi_error("ops->set_variable() failed");
@@ -78,12 +80,11 @@ _efi_set_variable_mode(efi_guid_t guid, const char *name, uint8_t *data,
 		efi_error_clear();
 	return rc;
 }
-VERSION(_efi_set_variable_mode,efi_set_variable@@LIBEFIVAR_0.24);
 
 int NONNULL(2, 3) PUBLIC
 efi_set_variable(efi_guid_t guid, const char *name, uint8_t *data,
 		 size_t data_size, uint32_t attributes, mode_t mode)
-        ALIAS(_efi_set_variable_mode);
+	ALIAS(_efi_set_variable_mode);
 
 int NONNULL(2, 3) PUBLIC
 efi_append_variable(efi_guid_t guid, const char *name, uint8_t *data,
@@ -238,12 +239,12 @@ libefivar_init(void)
 		NULL
 	};
 	char *ops_name = getenv("LIBEFIVAR_OPS");
-        if (ops_name && strcasestr(ops_name, "help")) {
-                printf("LIBEFIVAR_OPS operations available:\n");
-                for (int i = 0; ops_list[i] != NULL; i++)
-                        printf("\t%s\n", ops_list[i]->name);
-                exit(0);
-        }
+	if (ops_name && strcasestr(ops_name, "help")) {
+		printf("LIBEFIVAR_OPS operations available:\n");
+		for (int i = 0; ops_list[i] != NULL; i++)
+			printf("\t%s\n", ops_list[i]->name);
+		exit(0);
+	}
 
 	for (int i = 0; ops_list[i] != NULL; i++)
 	{
@@ -265,3 +266,11 @@ libefivar_init(void)
 		}
 	}
 }
+
+uint32_t PUBLIC
+efi_get_libefivar_version(void)
+{
+	return LIBEFIVAR_VERSION;
+}
+
+// vim:fenc=utf-8:tw=75:noet

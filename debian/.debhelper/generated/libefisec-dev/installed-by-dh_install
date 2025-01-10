@@ -1,0 +1,5 @@
+debian/tmp/usr/include/efivar/efisec-secdb.h
+debian/tmp/usr/include/efivar/efisec-types.h
+debian/tmp/usr/include/efivar/efisec.h
+debian/tmp/usr/lib/x86_64-linux-gnu/libefisec.so
+debian/tmp/usr/lib/x86_64-linux-gnu/pkgconfig/efisec.pc

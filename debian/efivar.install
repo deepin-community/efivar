@@ -1,2 +1,3 @@
 usr/bin/efivar
+usr/bin/efisecdb
 usr/share/man/man1/*

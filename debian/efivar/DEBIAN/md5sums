@@ -1,0 +1,6 @@
+6c035254ebeffd53e6b4d4ba8848ab31  usr/bin/efisecdb
+533463e8f2639115801b1a97b126f563  usr/bin/efivar
+4a34c02d42ddcc20b29fb038ad295792  usr/share/doc/efivar/changelog.Debian.gz
+5f5ce7358a4ff92e8437e8764dc7995f  usr/share/doc/efivar/copyright
+27974144d5b4f1d45ccc38e8335645ac  usr/share/man/man1/efisecdb.1.gz
+465a1246e630be5a5b306a589d3517c8  usr/share/man/man1/efivar.1.gz

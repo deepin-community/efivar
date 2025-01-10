@@ -1,23 +1,8 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2013 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
-
 #ifndef LIBEFIVAR_GUID_H
 #define LIBEFIVAR_GUID_H 1
 
@@ -27,8 +12,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "efivar_endian.h"
+#include "compiler.h"
+#include "include/efivar/efivar-types.h"
+#include "include/efivar/efivar.h"
 
 #define GUID_FORMAT "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x"
+#define GUID_FORMAT_ARGS(guidp)						\
+	(guidp)->a, (guidp)->b, (guidp)->c, bswap_16((guidp)->d),	\
+	(guidp)->e[0], (guidp)->e[1], (guidp)->e[2], (guidp)->e[3],	\
+	(guidp)->e[4], (guidp)->e[5]
 
 static inline int
 real_isspace(char c)
@@ -103,74 +95,74 @@ text_to_guid(const char *text, efi_guid_t *guid)
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
 	 * ^ */
-	strncpy(eightbytes, text, 8);
+	memcpy(eightbytes, text, 8);
 	if (check_segment_sanity(eightbytes, 8) < 0)
 		return -1;
 	guid->a = (uint32_t)strtoul(eightbytes, NULL, 16);
 	guid->a = cpu_to_le32(guid->a);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *          ^ */
-	strncpy(fourbytes, text+9, 4);
+	 *	  ^ */
+	memcpy(fourbytes, text+9, 4);
 	if (check_segment_sanity(fourbytes, 4) < 0)
 		return -1;
 	guid->b = (uint16_t)strtoul(fourbytes, NULL, 16);
 	guid->b = cpu_to_le16(guid->b);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *               ^ */
-	strncpy(fourbytes, text+14, 4);
+	 *	       ^ */
+	memcpy(fourbytes, text+14, 4);
 	if (check_segment_sanity(fourbytes, 4) < 0)
 		return -1;
 	guid->c = (uint16_t)strtoul(fourbytes, NULL, 16);
 	guid->c = cpu_to_le16(guid->c);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                    ^ */
-	strncpy(fourbytes, text+19, 4);
+	 *		    ^ */
+	memcpy(fourbytes, text+19, 4);
 	if (check_segment_sanity(fourbytes, 4) < 0)
 		return -1;
 	guid->d = (uint16_t)strtoul(fourbytes, NULL, 16);
 	guid->d = cpu_to_be16(guid->d);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                         ^ */
-	strncpy(twobytes, text+24, 2);
+	 *			 ^ */
+	memcpy(twobytes, text+24, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[0] = (uint8_t)strtoul(twobytes, NULL, 16);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                           ^ */
-	strncpy(twobytes, text+26, 2);
+	 *			   ^ */
+	memcpy(twobytes, text+26, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[1] = (uint8_t)strtoul(twobytes, NULL, 16);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                             ^ */
-	strncpy(twobytes, text+28, 2);
+	 *			     ^ */
+	memcpy(twobytes, text+28, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[2] = (uint8_t)strtoul(twobytes, NULL, 16);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                               ^ */
-	strncpy(twobytes, text+30, 2);
+	 *			       ^ */
+	memcpy(twobytes, text+30, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[3] = (uint8_t)strtoul(twobytes, NULL, 16);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                                 ^ */
-	strncpy(twobytes, text+32, 2);
+	 *				 ^ */
+	memcpy(twobytes, text+32, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[4] = (uint8_t)strtoul(twobytes, NULL, 16);
 
 	/* 84be9c3e-8a32-42c0-891c-4cd3b072becc
-	 *                                   ^ */
-	strncpy(twobytes, text+34, 2);
+	 *				   ^ */
+	memcpy(twobytes, text+34, 2);
 	if (check_segment_sanity(twobytes, 2) < 0)
 		return -1;
 	guid->e[5] = (uint8_t)strtoul(twobytes, NULL, 16);
@@ -178,10 +170,53 @@ text_to_guid(const char *text, efi_guid_t *guid)
 	return 0;
 }
 
-struct guidname {
+#ifndef EFIVAR_GUIDS_H
+struct efivar_guidname {
 	efi_guid_t guid;
 	char symbol[256];
 	char name[256];
-};
+	char description[256];
+} __attribute__((__aligned__(16)));
+#endif /* EFIVAR_GUIDS_H */
+
+static inline int
+efi_int_cmp_(uint64_t a, uint64_t b)
+{
+	if (a < b)
+		return -1;
+	if (a > b)
+		return 1;
+	return 0;
+}
+
+static inline int NONNULL(1, 2) UNUSED
+efi_guid_cmp_(const efi_guid_t *a, const efi_guid_t *b)
+{
+	if (a->a != b->a)
+		return efi_int_cmp_(a->a, b->a);
+	if (a->b != b->b)
+		return efi_int_cmp_(a->b, b->b);
+	if (a->c != b->c)
+		return efi_int_cmp_(a->c, b->c);
+	if (a->d != b->d)
+		return efi_int_cmp_(be16_to_cpu(a->d), be16_to_cpu(b->d));
+	for (size_t i = 0; i < sizeof(a->e)/sizeof(a->e[0]); i++) {
+		if (a->e[i] != b->e[i])
+			return efi_int_cmp_(a->e[i], b->e[i]);
+	}
+	return 0;
+}
+
+static inline int NONNULL(1, 2) UNUSED
+efi_str_to_guid_(const char *s, efi_guid_t *guid)
+{
+	int rc;
+	rc = text_to_guid(s, guid);
+	if (rc < 0)
+		efi_error("text_to_guid(\"%s\",...)", s);
+	return rc;
+}
 
 #endif /* LIBEFIVAR_GUID */
+
+// vim:fenc=utf-8:tw=75:noet

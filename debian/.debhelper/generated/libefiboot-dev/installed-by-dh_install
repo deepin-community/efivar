@@ -1,0 +1,5 @@
+debian/tmp/usr/include/efivar/efiboot-creator.h
+debian/tmp/usr/include/efivar/efiboot-loadopt.h
+debian/tmp/usr/include/efivar/efiboot.h
+debian/tmp/usr/lib/x86_64-linux-gnu/libefiboot.so
+debian/tmp/usr/lib/x86_64-linux-gnu/pkgconfig/efiboot.pc

@@ -1,20 +1,6 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * Copyright 2012-2016 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 #ifndef _EFIVAR_UCS2_H
 #define _EFIVAR_UCS2_H
@@ -22,17 +8,39 @@
 #define ev_bits(val, mask, shift) \
 	(((val) & ((mask) << (shift))) >> (shift))
 
+/*
+ * ucs2len(): Count the number of characters in a UCS-2 string.
+ * s: a UCS-2 string
+ * limit: the maximum number of uint16_t bytepairs to examine
+ *
+ * returns the number of characters before NUL is found (i.e., excluding
+ * the NUL character).  If limit is non-negative, no character index above
+ * limit will be accessed, and the maximum return value is limit.
+ */
 static inline size_t UNUSED
-ucs2len(const uint16_t * const s, ssize_t limit)
+ucs2len(const void *s, ssize_t limit)
 {
 	ssize_t i;
-	for (i = 0; i < (limit >= 0 ? limit : i+1) && s[i] != (uint16_t)0; i++)
+	const uint8_t *s8 = s;
+
+	for (i = 0;
+	     i < (limit >= 0 ? limit : i+1) && !(s8[0] == 0 && s8[1] == 0);
+	     i++, s8 += 2)
 		;
 	return i;
 }
 
+/*
+ * ucs2size(): count the number of bytes in use by a UCS-2 string.
+ * s: a UCS-2 string
+ * limit: the maximum number of uint16_t bytepairs to examine
+ *
+ * returns the number of bytes, including NUL, in the UCS-2 string s.  If
+ * limit is non-negative, no character index above limit will be accessed,
+ * and the maximum return value is limit.
+ */
 static inline size_t UNUSED
-ucs2size(const uint16_t * const s, ssize_t limit)
+ucs2size(const void *s, ssize_t limit)
 {
 	size_t rc = ucs2len(s, limit);
 	rc *= sizeof (uint16_t);
@@ -42,8 +50,20 @@ ucs2size(const uint16_t * const s, ssize_t limit)
 	return rc;
 }
 
+/*
+ * utf8len(): Count the number of characters in a UTF-8 string.
+ * s: a UTF-8 string
+ * limit: the maximum number of bytes to examine
+ *
+ * returns the number of UTF-8 charters before NUL is found (i.e.,
+ * excluding the NUL character).  If limit is non-negative, no character
+ * index above limit will be accessed, and the maximum return value is
+ * limit.
+ *
+ * Caveat: only good up to 3-byte sequences.
+ */
 static inline size_t UNUSED NONNULL(1)
-utf8len(uint8_t *s, ssize_t limit)
+utf8len(const unsigned char *s, ssize_t limit)
 {
 	ssize_t i, j;
 	for (i = 0, j = 0; i < (limit >= 0 ? limit : i+1) && s[i] != '\0';
@@ -59,8 +79,17 @@ utf8len(uint8_t *s, ssize_t limit)
 	return j;
 }
 
+/*
+ * utf8size(): count the number of bytes in use by a UTF-8 string.
+ * s: a UTF-8 string
+ * limit: the maximum number of bytes to examine
+ *
+ * returns the number of bytes, including NUL, in the UTF-8 string s.
+ * If limit is non-negative, no character index above limit will be
+ * accessed, and the maximum return value is limit.
+ */
 static inline size_t UNUSED NONNULL(1)
-utf8size(uint8_t *s, ssize_t limit)
+utf8size(const unsigned char *s, ssize_t limit)
 {
 	size_t ret = utf8len(s,limit);
 	if (ret < (limit >= 0 ? (size_t)limit : ret+1))
@@ -68,66 +97,95 @@ utf8size(uint8_t *s, ssize_t limit)
 	return ret;
 }
 
+/*
+ * ucs2_to_utf8(): convert UCS-2 to UTF-8
+ * s: the UCS-2 string
+ * limit: the maximum number of characters to copy from s, including the
+ *	  NUL terminator, or -1 for no limit.
+ *
+ * returns an allocated string, into which at most limit - 1 characters of
+ * UTF-8 are translated from UCS-2.  The return value is *always*
+ * NUL-terminated.
+ */
 static inline unsigned char * UNUSED
-ucs2_to_utf8(const uint16_t * const chars, ssize_t limit)
+ucs2_to_utf8(const void * const s, ssize_t limit)
 {
 	ssize_t i, j;
-	unsigned char *ret;
+	unsigned char *out, *ret;
+	const uint16_t * const chars = s;
 
 	if (limit < 0)
 		limit = ucs2len(chars, -1);
-	ret = malloc(limit * 6 + 1);
-	if (!ret)
+	out = malloc(limit * 6 + 1);
+	if (!out)
 		return NULL;
-	memset(ret, 0, limit * 6 +1);
+	memset(out, 0, limit * 6 +1);
 
 	for (i=0, j=0; chars[i] && i < (limit >= 0 ? limit : i+1); i++,j++) {
 		if (chars[i] <= 0x7f) {
-			ret[j] = chars[i];
+			out[j] = chars[i];
 		} else if (chars[i] > 0x7f && chars[i] <= 0x7ff) {
-			ret[j++] = 0xc0 | ev_bits(chars[i], 0x1f, 6);
-			ret[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xc0 | ev_bits(chars[i], 0x1f, 6);
+			out[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
 #if 1
 		} else if (chars[i] > 0x7ff) {
-			ret[j++] = 0xe0 | ev_bits(chars[i], 0xf, 12);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
-			ret[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xe0 | ev_bits(chars[i], 0xf, 12);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
+			out[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
 		}
 #else
 		} else if (chars[i] > 0x7ff && chars[i] < 0x10000) {
-			ret[j++] = 0xe0 | ev_bits(chars[i], 0xf, 12);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
-			ret[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xe0 | ev_bits(chars[i], 0xf, 12);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
+			out[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
 		} else if (chars[i] > 0xffff && chars[i] < 0x200000) {
-			ret[j++] = 0xf0 | ev_bits(chars[i], 0x7, 18);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
-			ret[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xf0 | ev_bits(chars[i], 0x7, 18);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
+			out[j]   = 0x80| ev_bits(chars[i], 0x3f, 0);
 		} else if (chars[i] > 0x1fffff && chars[i] < 0x4000000) {
-			ret[j++] = 0xf8 | ev_bits(chars[i], 0x3, 24);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 18);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
-			ret[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xf8 | ev_bits(chars[i], 0x3, 24);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 18);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
+			out[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
 		} else if (chars[i] > 0x3ffffff) {
-			ret[j++] = 0xfc | ev_bits(chars[i], 0x1, 30);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 24);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 18);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
-			ret[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
-			ret[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
+			out[j++] = 0xfc | ev_bits(chars[i], 0x1, 30);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 24);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 18);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 12);
+			out[j++] = 0x80 | ev_bits(chars[i], 0x3f, 6);
+			out[j]   = 0x80 | ev_bits(chars[i], 0x3f, 0);
 		}
 #endif
 	}
-	ret[j] = '\0';
+	out[j++] = '\0';
+	ret = realloc(out, j);
+	if (!ret) {
+		free(out);
+		return NULL;
+	}
 	return ret;
 }
 
+/*
+ * utf8_to_ucs2(): convert UTF-8 to UCS-2
+ * s: the destination buffer to write to.
+ * size: the size of the allocation to write to
+ * terminate: whether or not to add a terminator to the string
+ * utf8: the utf8 source
+ *
+ * returns the number of characters written to s, including the NUL
+ * terminator if "terminate" is true, or -1 on error.  In the case of an
+ * error, the buffer will not be modified.
+ */
 static inline ssize_t UNUSED NONNULL(4)
-utf8_to_ucs2(uint16_t *ucs2, ssize_t size, int terminate, uint8_t *utf8)
+utf8_to_ucs2(void *s, ssize_t size, bool terminate, const unsigned char *utf8)
 {
 	ssize_t req;
 	ssize_t i, j;
+	uint16_t *ucs2 = s;
+	uint16_t val16;
 
 	if (!ucs2 && size > 0) {
 		errno = EINVAL;
@@ -150,7 +208,7 @@ utf8_to_ucs2(uint16_t *ucs2, ssize_t size, int terminate, uint8_t *utf8)
 		uint32_t val = 0;
 
 		if ((utf8[i] & 0xe0) == 0xe0 && !(utf8[i] & 0x10)) {
-			val = ((utf8[i+0] & 0x0f) << 10)
+			val = ((utf8[i+0] & 0x0f) << 12)
 			     |((utf8[i+1] & 0x3f) << 6)
 			     |((utf8[i+2] & 0x3f) << 0);
 			i += 3;
@@ -162,11 +220,16 @@ utf8_to_ucs2(uint16_t *ucs2, ssize_t size, int terminate, uint8_t *utf8)
 			val = utf8[i] & 0x7f;
 			i += 1;
 		}
-		ucs2[j] = val;
+		val16 = val;
+		ucs2[j] = val16;
 	}
-	if (terminate)
-		ucs2[j++] = (uint16_t)0;
+	if (terminate) {
+		val16 = 0;
+		ucs2[j++] = val16;
+	}
 	return j;
 };
 
 #endif /* _EFIVAR_UCS2_H */
+
+// vim:fenc=utf-8:tw=75:noet

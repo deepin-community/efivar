@@ -1,0 +1,3 @@
+shlibs:Depends=libc6 (>= 2.38), libefisec1 (>= 38), libefivar1 (>= 38)
+misc:Depends=
+misc:Pre-Depends=

@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -74,7 +60,7 @@ efidp_duplicate_extra(const_efidp dp, efidp *out, size_t extra)
 		return sz;
 	}
 
-	if (add(sz, extra, &plus)) {
+	if (ADD(sz, extra, &plus)) {
 		errno = EOVERFLOW;
 		efi_error("arithmetic overflow computing allocation size");
 		return -1;
@@ -164,7 +150,7 @@ efidp_append_path(const_efidp dp0, const_efidp dp1, efidp *out)
 	}
 
 	efidp new;
-	if (add(lsz, rsz, &newsz)) {
+	if (ADD(lsz, rsz, &newsz)) {
 		errno = EOVERFLOW;
 		efi_error("arithmetic overflow computing allocation size");
 		return -1;
@@ -228,7 +214,8 @@ efidp_append_node(const_efidp dp, const_efidp dn, efidp *out)
 		}
 	}
 
-	if (add(lsz, rsz, &newsz) || add(newsz, sizeof(end_entire), &newsz)) {
+	if (ADD(lsz, rsz, &newsz) ||
+	    ADD(newsz, sizeof(end_entire), &newsz)) {
 		errno = EOVERFLOW;
 		efi_error("arithmetic overflow computing allocation size");
 		return -1;
@@ -298,7 +285,8 @@ efidp_append_instance(const_efidp dp, const_efidp dpi, efidp *out)
 }
 
 ssize_t PUBLIC
-efidp_format_device_path(char *buf, size_t size, const_efidp dp, ssize_t limit)
+efidp_format_device_path(unsigned char *buf, size_t size, const_efidp dp,
+			 ssize_t limit)
 {
 	ssize_t off = 0;
 	int first = 1;
@@ -402,8 +390,8 @@ efidp_format_device_path(char *buf, size_t size, const_efidp dp, ssize_t limit)
 }
 
 ssize_t PUBLIC
-efidp_parse_device_node(char *path UNUSED, efidp out UNUSED,
-                        size_t size UNUSED)
+efidp_parse_device_node(unsigned char *path UNUSED,
+			efidp out UNUSED, size_t size UNUSED)
 {
 	efi_error("not implented");
 	errno = -ENOSYS;
@@ -411,7 +399,7 @@ efidp_parse_device_node(char *path UNUSED, efidp out UNUSED,
 }
 
 ssize_t PUBLIC
-efidp_parse_device_path(char *path UNUSED, efidp out UNUSED,
+efidp_parse_device_path(unsigned char *path UNUSED, efidp out UNUSED,
 			size_t size UNUSED)
 {
 	efi_error("not implented");
@@ -462,3 +450,5 @@ efidp_make_generic(uint8_t *buf, ssize_t size, uint8_t type, uint8_t subtype,
 	head->length = total_size;
 	return head->length;
 }
+
+// vim:fenc=utf-8:tw=75:noet

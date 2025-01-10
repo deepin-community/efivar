@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
@@ -28,7 +14,7 @@
 #include "efivar.h"
 
 static ssize_t
-format_ipv4_addr_helper(char *buf, size_t size, const char *dp_type,
+format_ipv4_addr_helper(unsigned char *buf, size_t size, const char *dp_type,
 			const uint8_t *ipaddr, int32_t port)
 {
 	ssize_t off = 0;
@@ -40,7 +26,7 @@ format_ipv4_addr_helper(char *buf, size_t size, const char *dp_type,
 }
 
 static ssize_t
-format_ipv6_addr_helper(char *buf, size_t size, const char *dp_type,
+format_ipv6_addr_helper(unsigned char *buf, size_t size, const char *dp_type,
 			const uint8_t *ipaddr, int32_t port)
 {
 	uint16_t *ip = (uint16_t *)ipaddr;
@@ -123,7 +109,7 @@ format_ipv6_addr_helper(char *buf, size_t size, const char *dp_type,
 		      "IPv6", addr, port)
 
 static ssize_t
-format_ip_addr_helper(char *buf, size_t size,
+format_ip_addr_helper(unsigned char *buf, size_t size,
 		      const char *dp_type UNUSED,
 		      int is_ipv6, const efi_ip_addr_t *addr)
 {
@@ -142,7 +128,7 @@ format_ip_addr_helper(char *buf, size_t size,
 		      dp_type, is_ipv6, addr)
 
 static ssize_t
-format_uart(char *buf, size_t size,
+format_uart(unsigned char *buf, size_t size,
 	    const char *dp_type UNUSED,
 	    const_efidp dp)
 {
@@ -162,7 +148,7 @@ format_uart(char *buf, size_t size,
 }
 
 static ssize_t
-format_sas(char *buf, size_t size,
+format_sas(unsigned char *buf, size_t size,
 	   const char *dp_type UNUSED,
 	   const_efidp dp)
 {
@@ -232,7 +218,7 @@ format_sas(char *buf, size_t size,
 	       dp->usb_class.device_protocol)
 
 static ssize_t
-format_usb_class(char *buf, size_t size,
+format_usb_class(unsigned char *buf, size_t size,
 		 const char *dp_type UNUSED,
 		 const_efidp dp)
 {
@@ -312,7 +298,7 @@ format_usb_class(char *buf, size_t size,
 }
 
 ssize_t
-_format_message_dn(char *buf, size_t size, const_efidp dp)
+_format_message_dn(unsigned char *buf, size_t size, const_efidp dp)
 {
 	ssize_t off = 0;
 	switch (dp->subtype) {
@@ -347,29 +333,14 @@ _format_message_dn(char *buf, size_t size, const_efidp dp)
 		format(buf, size, off, "I2O", "I2O(%d)", dp->i2o.target);
 		break;
 	case EFIDP_MSG_INFINIBAND:
-		if (dp->infiniband.resource_flags &
-				EFIDP_INFINIBAND_RESOURCE_IOC_SERVICE) {
-			format(buf, size, off, "Infiniband",
-	"Infiniband(%08x,%"PRIx64"%"PRIx64",%"PRIx64",%"PRIu64",%"PRIu64")",
-				    dp->infiniband.resource_flags,
-				    dp->infiniband.port_gid[1],
-				    dp->infiniband.port_gid[0],
-				    dp->infiniband.service_id,
-				    dp->infiniband.target_port_id,
-				    dp->infiniband.device_id);
-		} else {
-			format(buf, size, off, "Infiniband",
-			       "Infiniband(%08x,%"PRIx64"%"PRIx64",",
-			       dp->infiniband.resource_flags,
-			       dp->infiniband.port_gid[1],
-			       dp->infiniband.port_gid[0]);
-			format_guid(buf, size, off, "Infiniband",
-				    (efi_guid_t *)&dp->infiniband.ioc_guid);
-			format(buf, size, off, "Infiniband",
-			       ",%"PRIu64",%"PRIu64")",
-			       dp->infiniband.target_port_id,
-			       dp->infiniband.device_id);
-		}
+		format(buf, size, off, "Infiniband",
+		       "Infiniband(%08x,%"PRIx64"%"PRIx64",%"PRIx64",%"PRIu64",%"PRIu64")",
+		       dp->infiniband.resource_flags,
+		       dp->infiniband.port_gid[1],
+		       dp->infiniband.port_gid[0],
+		       dp->infiniband.ioc_guid,
+		       dp->infiniband.target_port_id,
+		       dp->infiniband.device_id);
 		break;
 	case EFIDP_MSG_MAC_ADDR:
 		format(buf, size, off, "MAC", "MAC(");
@@ -393,7 +364,7 @@ _format_message_dn(char *buf, size_t size, const_efidp dp)
 		struct {
 			efi_guid_t guid;
 			char label[40];
-			ssize_t (*formatter)(char *buf, size_t size,
+			ssize_t (*formatter)(unsigned char *buf, size_t size,
 				const char *dp_type UNUSED,
 				const_efidp dp);
 		} subtypes[] = {
@@ -417,7 +388,7 @@ _format_message_dn(char *buf, size_t size, const_efidp dp)
 			  .label = "" }
 		};
 		char *label = NULL;
-		ssize_t (*formatter)(char *buf, size_t size,
+		ssize_t (*formatter)(unsigned char *buf, size_t size,
 			const char *dp_type UNUSED,
 			const_efidp dp) = NULL;
 
@@ -455,8 +426,8 @@ _format_message_dn(char *buf, size_t size, const_efidp dp)
 			       }
 	case EFIDP_MSG_IPv6: {
 		efidp_ipv6_addr const *a = &dp->ipv6_addr;
-		char *addr0 = NULL;
-		char *addr1 = NULL;
+		unsigned char *addr0 = NULL;
+		unsigned char *addr1 = NULL;
 		ssize_t tmpoff = 0;
 		ssize_t sz;
 
@@ -620,11 +591,13 @@ _format_message_dn(char *buf, size_t size, const_efidp dp)
 			  ) / sizeof(efi_ip_addr_t);
 		format(buf, size, off, "Dns", "Dns(");
 		for (int i=0; i < end; i++) {
-			const efi_ip_addr_t *addr = &dp->dns.addrs[i];
+			efi_ip_addr_t addr;
+
+			memcpy(&addr, &dp->dns.addrs[i], sizeof(addr));
 			if (i != 0)
 				format(buf, size, off, "Dns", ",");
 			format_ip_addr(buf, size, off, "Dns",
-				       dp->dns.is_ipv6, addr);
+				       dp->dns.is_ipv6, &addr);
 		}
 		format(buf, size, off, "Dns", ")");
 		break;
@@ -676,16 +649,16 @@ efidp_make_ipv4(uint8_t *buf, ssize_t size, uint32_t local, uint32_t remote,
 					EFIDP_MSG_IPv4, sizeof (*ipv4));
 	ssize_t req = sizeof (*ipv4);
 	if (size && sz == req) {
-		*((char *)ipv4->local_ipv4_addr) = htonl(local);
-		*((char *)ipv4->remote_ipv4_addr) = htonl(remote);
+		*((uint32_t *)ipv4->local_ipv4_addr) = htonl(local);
+		*((uint32_t *)ipv4->remote_ipv4_addr) = htonl(remote);
 		ipv4->local_port = htons(local_port);
 		ipv4->remote_port = htons(remote_port);
 		ipv4->protocol = htons(protocol);
 		ipv4->static_ip_addr = 0;
 		if (is_static)
 			ipv4->static_ip_addr = 1;
-		*((char *)ipv4->gateway) = htonl(gateway);
-		*((char *)ipv4->netmask) = htonl(netmask);
+		*((uint32_t *)ipv4->gateway) = htonl(gateway);
+		*((uint32_t *)ipv4->netmask) = htonl(netmask);
 	}
 
 	if (sz < 0)
@@ -844,3 +817,5 @@ efidp_make_emmc(uint8_t *buf, ssize_t size, uint32_t slot_id)
 
 	return sz;
 }
+
+// vim:fenc=utf-8:tw=75:noet

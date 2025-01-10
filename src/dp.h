@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 #ifndef _EFIVAR_INTERNAL_DP_H
 #define _EFIVAR_INTERNAL_DP_H
@@ -70,8 +56,11 @@
 #define format_guid(buf, size, off, dp_type, guid) ({			\
 		int _rc;						\
 		char *_guidstr = NULL;					\
+		efi_guid_t _guid;					\
+		const efi_guid_t * const _guid_p = &_guid;		\
 									\
-		_rc = efi_guid_to_str(guid, &_guidstr);			\
+		memmove(&_guid, guid, sizeof(_guid));			\
+		_rc = efi_guid_to_str(_guid_p, &_guidstr);		\
 		if (_rc < 0) {						\
 			efi_error("could not build %s GUID DP string",	\
 				  dp_type);				\
@@ -79,14 +68,15 @@
 			_guidstr = onstack(_guidstr,			\
 					   strlen(_guidstr)+1);		\
 			_rc = format(buf, size, off, dp_type, "%s",	\
-				     _guidstr);	\
+				     _guidstr);				\
 		}							\
 		_rc;							\
 	})
 
 static inline ssize_t UNUSED
-format_hex_helper(char *buf, size_t size, const char *dp_type, char *separator,
-		  int stride, const void * const addr, const size_t len)
+format_hex_helper(unsigned char *buf, size_t size, const char *dp_type,
+		  char *separator, int stride, const void * const addr,
+		  const size_t len)
 {
 	ssize_t off = 0;
 	for (size_t i = 0; i < len; i++) {
@@ -107,7 +97,8 @@ format_hex_helper(char *buf, size_t size, const char *dp_type, char *separator,
 		      addr, len)
 
 static inline ssize_t UNUSED
-format_vendor_helper(char *buf, size_t size, char *label, const_efidp dp)
+format_vendor_helper(unsigned char *buf, size_t size, char *label,
+		     const_efidp dp)
 {
 	ssize_t off = 0;
 	ssize_t bytes = efidp_node_size(dp)
@@ -154,11 +145,11 @@ format_vendor_helper(char *buf, size_t size, char *label, const_efidp dp)
 		off;							\
 	})
 
-extern ssize_t _format_hw_dn(char *buf, size_t size, const_efidp dp);
-extern ssize_t _format_acpi_dn(char *buf, size_t size, const_efidp dp);
-extern ssize_t _format_message_dn(char *buf, size_t size, const_efidp dp);
-extern ssize_t _format_media_dn(char *buf, size_t size, const_efidp dp);
-extern ssize_t _format_bios_boot_dn(char *buf, size_t size, const_efidp dp);
+extern ssize_t _format_hw_dn(unsigned char *buf, size_t size, const_efidp dp);
+extern ssize_t _format_acpi_dn(unsigned char *buf, size_t size, const_efidp dp);
+extern ssize_t _format_message_dn(unsigned char *buf, size_t size, const_efidp dp);
+extern ssize_t _format_media_dn(unsigned char *buf, size_t size, const_efidp dp);
+extern ssize_t _format_bios_boot_dn(unsigned char *buf, size_t size, const_efidp dp);
 
 #define format_helper_2(name, buf, size, off, dp) ({			\
 		ssize_t _sz;						\
@@ -184,3 +175,5 @@ extern ssize_t _format_bios_boot_dn(char *buf, size_t size, const_efidp dp);
 	format_helper_2(_format_bios_boot_dn, buf, size, off, dp)
 
 #endif /* _EFIVAR_INTERNAL_DP_H */
+
+// vim:fenc=utf-8:tw=75:noet

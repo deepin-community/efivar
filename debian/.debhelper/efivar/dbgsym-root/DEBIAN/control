@@ -1,0 +1,12 @@
+Package: efivar-dbgsym
+Source: efivar
+Version: 38-3.1deepin1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 95
+Depends: efivar (= 38-3.1deepin1)
+Section: debug
+Priority: optional
+Description: debug symbols for efivar
+Build-Ids: 37e2ef4ce8e97ecb7de6e0653d5c3e4207548bb9 cc107fed46e2832810b624ae42e548d61dc089fd

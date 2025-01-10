@@ -1,0 +1,15 @@
+Package: libefisec1
+Source: efivar
+Version: 38-3.1deepin1
+Architecture: amd64
+Maintainer: Debian UEFI Maintainers <debian-efi@lists.debian.org>
+Installed-Size: 53
+Depends: libc6 (>= 2.34)
+Breaks: efibootmgr (<< 0.12-2)
+Section: libs
+Priority: optional
+Multi-Arch: same
+Homepage: https://github.com/rhinstaller/efivar
+Description: Library to manage UEFI variables
+ Library to allow for the simple manipulation of UEFI variables related to
+ security.

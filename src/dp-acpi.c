@@ -1,21 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
- * Copyright 2012-2015 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
+ * Copyright 2012-2019 Red Hat, Inc.
  */
 
 #include "fix_coverity.h"
@@ -28,7 +14,7 @@
 #include "efivar.h"
 
 static ssize_t
-_format_acpi_adr(char *buf, size_t size,
+_format_acpi_adr(unsigned char *buf, size_t size,
 		 const char *dp_type UNUSED,
 		 const_efidp dp)
 {
@@ -45,15 +31,16 @@ _format_acpi_adr(char *buf, size_t size,
 	format_helper(_format_acpi_adr, buf, size, off, "AcpiAdr", dp)
 
 static ssize_t
-_format_acpi_hid_ex(char *buf, size_t size, const char *dp_type UNUSED,
-		    const_efidp dp,
-		    const char *hidstr, const char *cidstr, const char *uidstr)
+_format_acpi_hid_ex(unsigned char *buf, size_t size,
+		    const char *dp_type UNUSED, const_efidp dp,
+		    const char *hidstr, const char *cidstr,
+		    const char *uidstr)
 {
 	ssize_t off = 0;
 
-	debug("hid:0x%08x hidstr:\"%s\"", dp->acpi_hid_ex.hid, hidstr);
-	debug("cid:0x%08x cidstr:\"%s\"", dp->acpi_hid_ex.cid, cidstr);
-	debug("uid:0x%08x uidstr:\"%s\"", dp->acpi_hid_ex.uid, uidstr);
+	debug("hid:0x%08x hidstr:'%s'", dp->acpi_hid_ex.hid, hidstr);
+	debug("cid:0x%08x cidstr:'%s'", dp->acpi_hid_ex.cid, cidstr);
+	debug("uid:0x%08x uidstr:'%s'", dp->acpi_hid_ex.uid, uidstr);
 
 	if (!hidstr && !cidstr && (uidstr || dp->acpi_hid_ex.uid)) {
 		format(buf, size, off, "AcpiExp",
@@ -98,7 +85,7 @@ _format_acpi_hid_ex(char *buf, size_t size, const char *dp_type UNUSED,
 		      hidstr, cidstr, uidstr)
 
 ssize_t
-_format_acpi_dn(char *buf, size_t size, const_efidp dp)
+_format_acpi_dn(unsigned char *buf, size_t size, const_efidp dp)
 {
 	ssize_t off = 0;
 	const char *hidstr = NULL;
@@ -333,3 +320,5 @@ efidp_make_acpi_hid_ex(uint8_t *buf, ssize_t size,
 
 	return sz;
 }
+
+// vim:fenc=utf-8:tw=75:noet

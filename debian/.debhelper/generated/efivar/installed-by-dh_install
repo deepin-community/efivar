@@ -1,0 +1,4 @@
+debian/tmp/usr/bin/efivar
+debian/tmp/usr/bin/efisecdb
+debian/tmp/usr/share/man/man1/efisecdb.1
+debian/tmp/usr/share/man/man1/efivar.1

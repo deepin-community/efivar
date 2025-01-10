@@ -1,25 +1,12 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * libefivar - library for the manipulation of EFI variables
  * Copyright 2012-2013 Red Hat, Inc.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see
- * <http://www.gnu.org/licenses/>.
- *
  */
 
 #include "fix_coverity.h"
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/magic.h>
@@ -42,18 +29,39 @@
 #endif
 
 static char const default_efivarfs_path[] = "/sys/firmware/efi/efivars/";
+static char *efivarfs_path;
 
 static char const *
 get_efivarfs_path(void)
 {
-	static const char *path;
-	if (path)
-		return path;
+	if (efivarfs_path)
+		return efivarfs_path;
 
-	path = getenv("EFIVARFS_PATH");
-	if (!path)
-		path = default_efivarfs_path;
-	return path;
+	efivarfs_path = secure_getenv("EFIVARFS_PATH");
+	if (efivarfs_path)
+		efivarfs_path = strdup(efivarfs_path);
+	else
+		efivarfs_path = strdup(default_efivarfs_path);
+
+	if (!efivarfs_path)
+		err(1, "couldn't allocate memory");
+
+	return efivarfs_path;
+}
+
+static void CONSTRUCTOR
+init_efivarfs_path(void)
+{
+	get_efivarfs_path();
+}
+
+static void DESTRUCTOR
+fini_efivarfs_path(void)
+{
+	if (efivarfs_path) {
+		free(efivarfs_path);
+		efivarfs_path = NULL;
+	}
 }
 
 static int
@@ -92,10 +100,7 @@ efivarfs_probe(void)
 
 #define make_efivarfs_path(str, guid, name) ({				\
 		asprintf(str, "%s%s-" GUID_FORMAT, get_efivarfs_path(),	\
-			name, (guid).a, (guid).b, (guid).c,		\
-			bswap_16((guid).d),				\
-			(guid).e[0], (guid).e[1], (guid).e[2],		\
-			(guid).e[3], (guid).e[4], (guid).e[5]);		\
+			name, GUID_FORMAT_ARGS(&(guid)));		\
 	})
 
 static int
@@ -130,14 +135,19 @@ efivarfs_make_fd_mutable(int fd, unsigned long *orig_attrs)
 {
 	unsigned long mutable_attrs = 0;
 
-        *orig_attrs = 0;
+	*orig_attrs = 0;
+
 	if (ioctl(fd, FS_IOC_GETFLAGS, orig_attrs) == -1)
 		return -1;
+
 	if ((*orig_attrs & FS_IMMUTABLE_FL) == 0)
 		return 0;
-        mutable_attrs = *orig_attrs & ~(unsigned long)FS_IMMUTABLE_FL;
+
+	mutable_attrs = *orig_attrs & ~(unsigned long)FS_IMMUTABLE_FL;
+
 	if (ioctl(fd, FS_IOC_SETFLAGS, &mutable_attrs) == -1)
 		return -1;
+
 	return 0;
 }
 
@@ -448,10 +458,10 @@ err:
 
 	ioctl(restore_immutable_fd, FS_IOC_SETFLAGS, &orig_attrs);
 
-        if (wfd >= 0)
-                close(wfd);
-        if (rfd >= 0)
-                close(rfd);
+	if (wfd >= 0)
+		close(wfd);
+	if (rfd >= 0)
+		close(rfd);
 
 	free(buf);
 	free(path);
@@ -513,3 +523,5 @@ struct efi_var_operations efivarfs_ops = {
 	.get_next_variable_name = efivarfs_get_next_variable_name,
 	.chmod_variable = efivarfs_chmod_variable,
 };
+
+// vim:fenc=utf-8:tw=75:noet

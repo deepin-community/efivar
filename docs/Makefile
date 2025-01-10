@@ -1,12 +1,13 @@
 SRCDIR = $(realpath .)
-TOPDIR = $(realpath ..)
 
-include $(TOPDIR)/Make.deprecated
-include $(TOPDIR)/Make.version
-include $(TOPDIR)/Make.rules
-include $(TOPDIR)/Make.defaults
+include $(TOPDIR)/src/include/deprecated.mk
+include $(TOPDIR)/src/include/version.mk
+include $(TOPDIR)/src/include/rules.mk
+include $(TOPDIR)/src/include/defaults.mk
 
-MAN1TARGETS = efivar.1
+MAN1TARGETS = efisecdb.1 \
+	      efivar.1
+
 MAN3TARGETS = efi_append_variable.3 \
 	     efi_del_variable.3 \
 	     efi_get_next_variable_name.3 \
@@ -37,13 +38,16 @@ MAN3TARGETS = efi_append_variable.3 \
 	     efi_variable_set_attributes.3 \
 	     efi_variable_realize.3
 
-all :
+all : $(MAN1TARGETS) $(MAN3TARGETS)
 
 clean :
+	@rm -f efisecdb.1
+
+prep :
 
 test :
 
-install :
+install : $(MAN1TARGETS) $(MAN3TARGETS)
 	$(INSTALL) -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	$(foreach x, $(MAN1TARGETS), $(INSTALL) -m 644 $(x) $(DESTDIR)/$(MANDIR)/man1/;)
 	$(INSTALL) -d -m 755 $(DESTDIR)$(MANDIR)/man3
@@ -51,4 +55,4 @@ install :
 
 .PHONY: all clean install
 
-include $(TOPDIR)/Make.rules
+include $(TOPDIR)/src/include/rules.mk

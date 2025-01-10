@@ -1,8 +1,50 @@
-efivar (37-6deepin1) unstable; urgency=medium
+efivar (38-3.1deepin1) unstable; urgency=medium
 
-  * Add loong64 support
+  * Revert t64 and build=any.
 
- -- Han Gao <gaohan@deepin.org>  Tue, 31 Jan 2023 19:39:00 +0800
+ -- xiangzelong <xiangzelong@deepin.org>  Fri, 10 Jan 2025 14:33:41 +0800
+
+efivar (38-3.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Rename libraries for 64-bit time_t transition.  Closes: #1062526
+
+ -- Michael Hudson-Doyle <mwhudson@debian.org>  Wed, 28 Feb 2024 02:57:40 +0000
+
+efivar (38-3) unstable; urgency=medium
+
+  [ Mate Kukri ]
+  * d/p/0001-linux-handle-non-ACPI-systems-in-device_get.patch:
+    Rebase on current upstream version and include in series
+
+ -- Steve McIntyre <93sam@debian.org>  Wed, 29 Nov 2023 14:30:24 +0000
+
+efivar (38-2) unstable; urgency=medium
+
+  * Don't compile with -march=native. Closes: #1055123
+
+ -- Steve McIntyre <93sam@debian.org>  Wed, 01 Nov 2023 00:39:42 +0000
+
+efivar (38-1) unstable; urgency=medium
+
+  [ Mario Limonciello ]
+  * New upstream version (38)
+  * Drop all patches, upstream
+  * debian/*:
+    - Create new binary packages for new library libefisec1
+    - Add efisecdb to efivar binary package
+  * debian/control:
+    - Add mandoc to build depends
+    - add grub-common to build depends for unit tests
+  * debian/rules:
+    - disable link time optimization to fix FTBFS
+    - turn off verbose builds by default
+    - set prefix for *-editenv command for unit tests
+
+  [ Steve McIntyre ]
+  * Add loong64 to arch lists for packages. Closes: #1055083
+
+ -- Steve McIntyre <93sam@debian.org>  Tue, 31 Oct 2023 11:40:31 +0000
 
 efivar (37-6) unstable; urgency=medium
 
@@ -281,7 +323,7 @@ efivar (0.19-3) unstable; urgency=medium
 
 efivar (0.19-2) unstable; urgency=medium
 
-  * Upstream: Work around LocateDevicePath() not grokking PcieRoot() devices 
+  * Upstream: Work around LocateDevicePath() not grokking PcieRoot() devices
     properly.
 
  -- Daniel Jared Dominguez <Jared_Dominguez@Dell.com>  Mon, 01 Jun 2015 15:40:23 -0500
@@ -319,7 +361,7 @@ efivar (0.15-2) unstable; urgency=medium
 efivar (0.15-1) unstable; urgency=medium
 
   * New upstream release
-  * Clear out the quilt patch series 
+  * Clear out the quilt patch series
 
  -- Daniel Jared Dominguez <Jared_Dominguez@Dell.com>  Tue, 28 Oct 2014 21:26:08 -0500
 
@@ -341,7 +383,7 @@ efivar (0.12-1) unstable; urgency=medium
 efivar (0.11-1) unstable; urgency=medium
 
   * New upstream release
-  * Remove all current quilt patches since they're all upstream 
+  * Remove all current quilt patches since they're all upstream
 
  -- Daniel Jared Dominguez <Jared_Dominguez@Dell.com>  Thu, 28 Aug 2014 19:18:06 -0500
 
@@ -368,7 +410,7 @@ efivar (0.10-3) unstable; urgency=medium
 
 efivar (0.10-2) unstable; urgency=medium
 
-  * Fix shlib-with-executable-stack lintian warning in libefivar0 
+  * Fix shlib-with-executable-stack lintian warning in libefivar0
 
  -- Daniel Jared Dominguez <Jared_Dominguez@Dell.com>  Tue, 10 Jun 2014 14:58:19 -0500
 
