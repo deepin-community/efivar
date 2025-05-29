@@ -1,3 +1,9 @@
+efivar (38-3.1deepin2) unstable; urgency=medium
+
+  * feat: add sw64 support.
+
+ -- hudeng <hudeng@deepin.org>  Thu, 29 May 2025 14:00:42 +0800
+
 efivar (38-3.1deepin1) unstable; urgency=medium
 
   * Revert t64 and build=any.
