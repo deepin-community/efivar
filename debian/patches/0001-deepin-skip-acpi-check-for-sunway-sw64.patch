@@ -1,0 +1,31 @@
+From 77d90e35ef4f43bac557ab3b5f5cc1c6dde0c992 Mon Sep 17 00:00:00 2001
+From: hudeng <hudeng@deepin.org>
+Date: Thu, 29 May 2025 13:57:31 +0800
+Subject: [PATCH] feat: add sw64 support
+
+---
+ src/linux-pci-root.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/linux-pci-root.c b/src/linux-pci-root.c
+index 5de27a2..092c9ad 100644
+--- a/src/linux-pci-root.c
++++ b/src/linux-pci-root.c
+@@ -55,11 +55,13 @@ parse_pci_root(struct device *dev, const char *path, const char *root UNUSED)
+ 	dev->pci_root.pci_domain = root_domain;
+ 	dev->pci_root.pci_bus = root_bus;
+ 
++	/* Workaround for sunway. */
++#if !defined(__sw_64__)
+ 	rc = parse_acpi_hid_uid(dev, "devices/pci%04hx:%02hhx",
+ 	                        root_domain, root_bus);
+ 	if (rc < 0)
+ 	        return -1;
+-
++#endif
+ 	errno = 0;
+ 	debug("current:'%s' sz:%zd\n", current, current - path);
+ 	return current - path;
+-- 
+2.45.2
+

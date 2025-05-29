@@ -1,2 +1,3 @@
 0001-linux-handle-non-ACPI-systems-in-device_get.patch
 0002_no_host_march.patch
+0001-deepin-skip-acpi-check-for-sunway-sw64.patch
